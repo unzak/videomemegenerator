@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Meme Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="top">
+      <h1>Video Meme Generator</h1>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <h2>1 · Texto</h2>
+        <div class="field">
+          <label for="text">
+            Rótulo
+            <span class="muted small">· lo que envuelvas en *asteriscos* sale resaltado</span>
+          </label>
+          <textarea id="text" rows="3" placeholder="Escribe aquí el texto del meme"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="size">
+            Tamaño de letra
+            <span class="muted small">· <span id="size-value">52</span> px</span>
+          </label>
+          <input type="range" id="size" min="26" max="76" step="0.01" value="52.28" />
+        </div>
+
+        <h2>2 · Vídeo</h2>
+        <div id="drop" class="drop">
+          <input type="file" id="file" accept="video/*" hidden />
+          <p><strong>Arrastra un vídeo aquí</strong></p>
+          <p class="muted">o</p>
+          <button type="button" id="pick" class="btn-secondary">Elegir archivo…</button>
+          <p class="muted small" id="file-name">Ningún archivo seleccionado</p>
+        </div>
+
+        <div class="field">
+          <label for="seek">
+            Fotograma de la previa
+            <span class="muted small">· solo para encuadrar; no recorta el vídeo</span>
+          </label>
+          <input type="range" id="seek" min="0" max="1" step="0.001" value="0" disabled />
+        </div>
+
+        <div class="field">
+          <label for="zoom">
+            Tamaño del vídeo
+            <span class="muted small">· <span id="zoom-value">100</span> % · arrastra la previa para moverlo</span>
+          </label>
+          <input type="range" id="zoom" min="1" max="3" step="0.01" value="1" />
+        </div>
+
+        <details class="section">
+          <summary>3 · Colores</summary>
+          <div class="colors">
+            <div class="field">
+              <label for="color-text">Texto</label>
+              <input type="color" id="color-text" value="#ffffff" />
+              <div class="swatches" data-for="color-text"></div>
+            </div>
+            <div class="field">
+              <label for="color-highlight">Resaltado</label>
+              <input type="color" id="color-highlight" value="#e9397e" />
+              <div class="swatches" data-for="color-highlight"></div>
+            </div>
+          </div>
+        </details>
+
+        <button type="button" id="generate" class="btn">GENERA</button>
+        <div class="progress" id="progress" hidden><div id="progress-bar"></div></div>
+        <p class="status" id="status"></p>
+      </section>
+
+      <section class="panel" id="preview-panel">
+        <h2>Vista previa</h2>
+        <div class="stage">
+          <canvas id="preview"></canvas>
+        </div>
+        <p class="muted small" id="preview-info"></p>
+      </section>
+    </main>
+
+    <section class="output" id="output" hidden>
+      <h2>Resultado</h2>
+      <video id="result" controls playsinline></video>
+      <p class="muted small" id="result-info"></p>
+      <button type="button" id="download" class="btn">Descargar MP4</button>
+    </section>
+
+    <video id="source" hidden playsinline muted preload="auto"></video>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
