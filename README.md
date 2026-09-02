@@ -43,7 +43,8 @@ publicada funciona sola.
    salen del encuadre — el mismo punto vale 195 px con el vídeo al 100 % y 802
    con el vídeo al 200 %.
 7. Cambia los **colores** si quieres. El apartado va plegado, porque casi
-   siempre son los mismos.
+   siempre son los mismos. En escritorio la previa acompaña al scroll, así que
+   el selector se toca mirando el resultado.
 8. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
    (unos 30 MB, luego queda en caché). Abajo aparece el resultado con el botón
    de descarga.

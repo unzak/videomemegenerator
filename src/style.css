@@ -329,6 +329,26 @@ input[type="range"]:disabled {
   max-height: 70vh;
 }
 
+/*
+ * En escritorio la previa acompaña al scroll. Los controles que hay mas abajo
+ * -los colores sobre todo- se tocan mirando el resultado, y sin esto habia que
+ * elegir entre ver el selector o ver lo que le pasa al rotulo.
+ *
+ * El alto del lienzo se recorta a lo que deja el panel entero, porque una
+ * previa que no cabe en la ventana no se pega a nada: se queda a medias y el
+ * scroll la arrastra igual.
+ */
+@media (min-width: 901px) {
+  #preview-panel {
+    position: sticky;
+    top: 16px;
+  }
+
+  #preview {
+    max-height: calc(100vh - 220px);
+  }
+}
+
 .output {
   max-width: 1180px;
   margin: 24px auto 0;
