@@ -188,6 +188,27 @@ function blockHeight(lineCount: number, size: number): number {
   return (lineCount - 1) * size * LINE_RATIO + size * CAP_RATIO;
 }
 
+/**
+ * Compone el rotulo a un cuerpo dado y dice ademas si cabe: entre el logo y el
+ * hueco del video por un lado, y dentro de la caja de composicion por otro. Lo
+ * segundo solo puede fallar con una palabra suelta mas larga que la caja, que
+ * no hay forma de partir por espacios.
+ */
+function compose(
+  ctx: CanvasRenderingContext2D,
+  opts: RenderOptions,
+  size: number,
+): { lines: Line[]; fits: boolean } {
+  setFont(ctx, opts.font, size);
+  const lines = layoutLines(ctx, tokenize(parseSegments(opts.text)), size, TEXT_MAX_W);
+  if (lines.length === 0) return { lines, fits: true };
+  const widest = Math.max(0, ...lines.map((l) => lineWidth(ctx, l, size)));
+  return {
+    lines,
+    fits: blockHeight(lines.length, size) <= TEXT_BAND_H && widest <= TEXT_MAX_W,
+  };
+}
+
 export interface Layout {
   width: number;
   height: number;
@@ -251,32 +272,42 @@ export function computeLayout(
   ctx: CanvasRenderingContext2D,
   opts: RenderOptions,
 ): Layout {
+  // El cuerpo pedido es un tope: si el rotulo no cabe, se compone mas pequeño.
+  //
+  // Se busca **el mayor que cabe**, y no se reduce por proporcion, porque la
+  // proporcion se pasa de frenada. Al subir el cuerpo llega un momento en que
+  // una linea ya no entra en la caja y el rotulo pasa de dos lineas a tres;
+  // encoger entonces por la altura que ocupan tres lineas devuelve un cuerpo al
+  // que vuelven a caber dos, mucho mas pequeño del que de verdad cabria. Se
+  // veia como que ampliar de mas empequeñecia el texto.
+  //
+  // El cuerpo maximo depende solo del texto, no del que se haya pedido, asi que
+  // buscandolo asi subir el deslizador nunca puede achicar el rotulo: al llegar
+  // al tope se queda quieto.
   let size = opts.fontSize;
-  let lines: Line[] = [];
+  let composed = compose(ctx, opts, size);
 
-  // El cuerpo pedido es un tope. Si el rotulo no cabe entre el logo y el
-  // degradado, o se sale de la caja de composicion, se reduce. Cada pasada
-  // puede cambiar el numero de lineas, asi que se vuelve a componer; converge
-  // en dos o tres vueltas y el bucle esta acotado por si acaso.
-  for (let i = 0; i < 24; i += 1) {
-    setFont(ctx, opts.font, size);
-    lines = layoutLines(ctx, tokenize(parseSegments(opts.text)), size, TEXT_MAX_W);
-    if (lines.length === 0) break;
-
-    const h = blockHeight(lines.length, size);
-    const widest = Math.max(0, ...lines.map((l) => lineWidth(ctx, l, size)));
-    // Una palabra sola mas larga que la caja no se puede partir por espacios:
-    // ahi el unico remedio es encoger.
-    const factor = Math.min(
-      h > TEXT_BAND_H ? TEXT_BAND_H / h : 1,
-      widest > TEXT_MAX_W ? TEXT_MAX_W / widest : 1,
-    );
-    if (factor >= 1) break;
-    const next = Math.max(FONT_SIZE_MIN, size * factor);
-    if (next >= size) break; // ya esta en el minimo
-    size = next;
+  if (!composed.fits) {
+    let lo = FONT_SIZE_MIN;
+    let hi = size;
+    // El minimo se acepta aunque no quepa: es el suelo, y por debajo el rotulo
+    // seria ilegible.
+    composed = compose(ctx, opts, lo);
+    size = lo;
+    for (let i = 0; i < 18; i += 1) {
+      const mid = (lo + hi) / 2;
+      const attempt = compose(ctx, opts, mid);
+      if (attempt.fits) {
+        lo = mid;
+        size = mid;
+        composed = attempt;
+      } else {
+        hi = mid;
+      }
+    }
   }
 
+  const lines = composed.lines;
   setFont(ctx, opts.font, size);
   const blockTop = TEXT_CENTER_Y - blockHeight(lines.length, size) / 2;
 

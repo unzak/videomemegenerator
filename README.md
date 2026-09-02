@@ -23,6 +23,8 @@ publicada funciona sola.
 2. Ajusta el **tamaño de letra** si quieres. Viene puesto el del PSD, 52,3 px.
    Es un tope, no una orden: el rótulo se compone más pequeño si no cabe entre
    el logo y el hueco del vídeo, y abajo te dice si ha tenido que reducirlo.
+   Pasado el mayor cuerpo al que cabe, seguir subiendo no hace nada: se queda
+   ahí, nunca encoge.
 3. Arrastra el **vídeo**, o elígelo con el botón.
 4. Si el primer fotograma sale en negro —que pasa a menudo—, mueve la barra de
    **fotograma de la previa** hasta ver algo. Solo cambia lo que se ve mientras
