@@ -12,22 +12,48 @@ export const CANVAS_W = 1080;
 export const CANVAS_H = 1920;
 
 /**
- * Hueco del video. La capa `PLANTILLA` es negro opaco de arriba abajo salvo
+ * El hueco del video. La capa `PLANTILLA` es negro opaco de arriba abajo salvo
  * una ventana con los bordes desvanecidos: el alfa baja de 255 a 0 entre las
  * filas 647 y 802, se queda a 0 hasta la 1355, y vuelve a 255 en la 1512.
  *
- * El video tiene que cubrir **todo lo que no es opaco del todo**, no solo la
- * ventana limpia: si se recorta en el borde de la ventana, el desvanecido deja
- * pasar la mitad del degradado sobre nada y se ve un corte cruzando el ancho.
- * De ahi que el hueco util empiece en la ultima fila opaca + 1 y acabe en la
- * primera fila opaca de abajo - 1.
+ * El techo no se mueve: ahi es donde el marco negro deja de ser opaco, justo
+ * debajo del rotulo. Lo que si se mueve es el suelo, porque el degradado de
+ * abajo va pegado al borde inferior del video en vez de estar clavado donde lo
+ * dejo el PSD. Asi un video que da de si aprovecha toda la parte de abajo, y
+ * uno corto deja mas barra negra, en vez de recortarse siempre a la misma
+ * altura.
  */
 export const VIDEO_Y = 647;
-export const VIDEO_H = 865;
 
-/** La parte del hueco donde el video se ve entero, sin degradado encima. */
-export const WINDOW_Y = 803;
-export const WINDOW_H = 553;
+/**
+ * Primera fila con alfa 0: donde acaba el degradado de arriba y el video se ve
+ * ya entero. Es tambien el alto de la pieza de arriba de la plantilla, que se
+ * dibuja siempre igual y en el mismo sitio.
+ */
+export const FADE_TOP_END = 803;
+
+/**
+ * El degradado de abajo, dentro de la plantilla: ultima fila con alfa 0 y
+ * primera opaca de vuelta. Esta banda se recorta del PNG y se pega donde acabe
+ * el video, con su fila opaca justo en el borde.
+ */
+export const FADE_BOTTOM_START = 1355;
+export const FADE_BOTTOM_END = 1512;
+export const FADE_BOTTOM_H = FADE_BOTTOM_END - FADE_BOTTOM_START;
+
+/**
+ * Hasta donde puede llegar el video: el borde del lienzo. Ahi no queda barra
+ * negra, solo el desvanecido de los ultimos 157 px.
+ */
+export const VIDEO_MAX_H = CANVAS_H - VIDEO_Y;
+
+/**
+ * Y de donde no puede bajar. Con esto el borde inferior nunca sube de 1060, o
+ * sea que siempre quedan 100 px de ventana limpia entre los dos degradados.
+ * Solo entra en juego con material muy apaisado: un 16:9 a todo lo ancho ya da
+ * 607 px de alto.
+ */
+export const VIDEO_MIN_H = 413;
 
 /**
  * Donde acaba la tinta del logo y los filetes dentro de `PLANTILLA`. Es el

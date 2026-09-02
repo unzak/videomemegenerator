@@ -1,6 +1,7 @@
 import overlayUrl from "./assets/overlay.png";
 import { encode } from "./encode.js";
 import {
+  CANVAS_W,
   COLOR_HIGHLIGHT,
   COLOR_TEXT,
   COLORS,
@@ -12,11 +13,11 @@ import {
   ZOOM_MIN,
 } from "./format.js";
 import {
+  centerVideoOffset,
   clampVideoOffset,
   computeLayout,
   render,
   renderPlate,
-  VIDEO_AREA,
   type RenderOptions,
   type VideoTransform,
 } from "./render.js";
@@ -186,7 +187,9 @@ async function loadFile(file: File): Promise<void> {
   state.hasVideo = true;
   state.file = file;
   state.frameSize = { width: sourceEl.videoWidth, height: sourceEl.videoHeight };
-  state.transform = { zoom: 1, offsetX: 0, offsetY: 0 };
+  // De partida, centrado en el hueco: con un video mas largo que el hueco, ver
+  // el centro es lo que se espera. Uno que cabe entero se pega al techo solo.
+  state.transform = { zoom: 1, offsetX: 0, offsetY: centerVideoOffset(state.frameSize, 1) };
   zoomEl.value = "1";
   seekEl.disabled = false;
   seekEl.max = String(sourceEl.duration || 1);
@@ -199,9 +202,9 @@ async function loadFile(file: File): Promise<void> {
 
   // El hueco de la plantilla mide 1080 de ancho: por debajo de eso el video se
   // amplia, y ampliar es lo unico de todo el montaje que se ve de verdad.
-  if (sourceEl.videoWidth < VIDEO_AREA.w) {
+  if (sourceEl.videoWidth < CANVAS_W) {
     setStatus(
-      `Aviso: el vídeo tiene ${sourceEl.videoWidth} px de ancho y el hueco pide ${VIDEO_AREA.w}. Se verá pixelado.`,
+      `Aviso: el vídeo tiene ${sourceEl.videoWidth} px de ancho y el hueco pide ${CANVAS_W}. Se verá pixelado.`,
       "error",
     );
   } else {
@@ -262,12 +265,14 @@ function toCanvas(clientX: number, clientY: number): { x: number; y: number } {
 
 type Target = "text" | "video";
 
-/** Que hay bajo el puntero. Decide a que afecta cada gesto. */
+/**
+ * Que hay bajo el puntero. Decide a que afecta cada gesto. El hueco ya no esta
+ * en un sitio fijo, asi que hay que preguntarselo a la composicion.
+ */
 function targetAt(clientX: number, clientY: number): Target | null {
   const p = toCanvas(clientX, clientY);
-  if (p.y >= VIDEO_AREA.y && p.y < VIDEO_AREA.y + VIDEO_AREA.h) {
-    return state.hasVideo ? "video" : null;
-  }
+  const area = computeLayout(previewCtx, options()).videoArea;
+  if (p.y >= area.y && p.y < area.y + area.h) return state.hasVideo ? "video" : null;
   return "text";
 }
 
@@ -412,7 +417,13 @@ function draw(): void {
     ? "sin rótulo"
     : `${n} ${n === 1 ? "línea" : "líneas"} a ${layout.fontSize.toFixed(1)} px` +
       (layout.shrunk ? " (reducido para que quepa)" : "");
-  previewInfoEl.textContent = `${layout.width} × ${layout.height} px · ${rotulo}`;
+  const hueco = state.hasVideo
+    ? ` · hueco ${layout.videoArea.h} px` +
+      (layout.videoBottom >= layout.height
+        ? ", sin barra negra"
+        : `, barra de ${layout.height - layout.videoBottom} px`)
+    : "";
+  previewInfoEl.textContent = `${layout.width} × ${layout.height} px · ${rotulo}${hueco}`;
 }
 
 for (const el of [textEl, sizeEl, textColorEl, highlightEl]) {
@@ -504,7 +515,7 @@ downloadEl.addEventListener("click", () => {
 
 textEl.value = "";
 sizeEl.value = String(FONT_SIZE);
-previewEl.width = VIDEO_AREA.w;
+previewEl.width = CANVAS_W;
 textColorEl.value = COLOR_TEXT;
 highlightEl.value = COLOR_HIGHLIGHT;
 

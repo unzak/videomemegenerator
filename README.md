@@ -7,6 +7,10 @@ Reproduce `VIDEO MEME NUEVO.psd`: el marco negro con el logo y los filetes, el
 rótulo donde va la capa `TEXTO`, y el vídeo asomando por el hueco de la ventana
 con sus bordes desvanecidos.
 
+Con una diferencia: **el suelo del hueco no está clavado**. El degradado de
+abajo va pegado al borde inferior del vídeo, así que la barra negra crece y
+mengua con él y un vídeo que da de sí aprovecha toda la parte de abajo.
+
 **Todo ocurre en el navegador.** No hay servidor y no hay nada que instalar: el
 montaje lo hace una build de ffmpeg compilada a WebAssembly, así que la página
 publicada funciona sola.
@@ -23,8 +27,12 @@ publicada funciona sola.
 4. Si el primer fotograma sale en negro —que pasa a menudo—, mueve la barra de
    **fotograma de la previa** hasta ver algo. Solo cambia lo que se ve mientras
    encuadras: al vídeo no le recorta nada.
-5. Ajusta el **tamaño del vídeo** con la barra, y arrastra sobre la vista previa
-   para moverlo. El encuadre está topado para que el vídeo no deje nunca hueco.
+5. Ajusta el **tamaño del vídeo** con la barra. **La barra negra de abajo se
+   adapta sola**: al ampliar, el vídeo baja y la barra se encoge, hasta llegar
+   al borde del lienzo y desaparecer; al reducir, la barra vuelve a crecer.
+   Arrastrando sobre la vista previa lo mueves; si es más largo que el hueco lo
+   recorres de arriba abajo, y el encuadre está topado para que no deje nunca
+   hueco.
 6. Cambia los **colores** si quieres. El apartado va plegado, porque casi
    siempre son los mismos.
 7. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
@@ -46,9 +54,10 @@ El **audio se copia tal cual**, bit a bit, sin tocarlo. Solo se recodifica a AAC
 si el contenedor no lo admite, que en la práctica pasa con los `.webm`, porque
 suelen traer Opus.
 
-Lo que de verdad se nota es otra cosa: el hueco mide **1080 × 865**, así que un
-vídeo más estrecho se amplía para cubrirlo. Si te avisa de que se verá pixelado,
-es por eso, y no hay recodificación que lo arregle.
+Lo que de verdad se nota es otra cosa: el hueco ocupa siempre los **1080 px** de
+ancho del lienzo, así que un vídeo más estrecho se amplía para cubrirlo. Si te
+avisa de que se verá pixelado, es por eso, y no hay recodificación que lo
+arregle.
 
 ## Requisitos
 
@@ -83,8 +92,10 @@ se adivinan mirando la imagen:
 | Dato | Valor | Origen |
 | --- | --- | --- |
 | Lienzo | 1080 × 1920 | cabecera del PSD |
-| Hueco del vídeo | y 647 … 1511 (865 px) | capa `PLANTILLA`: última fila opaca 646, primera opaca de vuelta 1512 |
-| Ventana limpia | y 803 … 1355 (553 px) | el tramo con alfa 0 |
+| Techo del hueco | y = 647 | capa `PLANTILLA`: última fila opaca antes de la ventana |
+| Degradado de arriba | y 647 … 802 | de alfa 255 a 0 |
+| Degradado de abajo | 157 px | y 1355 … 1511 en el PSD, de alfa 0 a 255 |
+| Ventana limpia del PSD | y 803 … 1355 | el tramo con alfa 0 |
 | Fin del logo | y = 496 | tinta de la capa `PLANTILLA` |
 | Fuente | SF Pro Display Bold, 52,28 px | `FontSize` 42 × escala 1,24484 de la capa |
 | Negrita sintética | sí | `FauxBold: true` sobre la Bold |
@@ -102,11 +113,13 @@ puede coincidir con el de Photoshop.
 
 Cuatro trampas que costaron encontrar, por si alguien vuelve por aquí:
 
-- **El vídeo tiene que cubrir 647 … 1511, no solo la ventana limpia.** El alfa
-  de la plantilla no cae a cero de golpe: baja de 255 a 0 entre 647 y 802, y
-  vuelve a subir entre 1356 y 1511. Recortando el vídeo en el borde de la
-  ventana, el desvanecido deja pasar medio degradado sobre nada y se ve un corte
-  cruzando el ancho entero.
+- **El vídeo tiene que llegar por debajo de los degradados, no hasta el borde de
+  la ventana limpia.** El alfa de la plantilla no cae a cero de golpe: baja de
+  255 a 0 entre 647 y 802, y vuelve a subir a lo largo de 157 px. Si el vídeo se
+  corta donde empieza el desvanecido, este deja pasar medio degradado sobre nada
+  y se ve un corte cruzando el ancho entero. Por eso el borde de arriba del
+  vídeo va siempre por encima de 647, y el degradado de abajo se coloca de modo
+  que su fila opaca caiga justo en el filo inferior.
 - **La negrita sintética también ensancha el avance.** Emularla solo con un
   trazo sobre el contorno engorda la letra pero no la separa de la siguiente, y
   Photoshop sí las separa: las dos líneas de la plantilla salían 7 y 4 px
@@ -118,6 +131,28 @@ Cuatro trampas que costaron encontrar, por si alguien vuelve por aquí:
   Eso es lo que permite recortar y colocar el vídeo con números enteros sin que
   se note ninguna costura.
 
+## El suelo que se adapta
+
+El PSD deja la ventana clavada entre 647 y 1511. Aquí solo el techo es fijo —ahí
+es donde acaba el rótulo y el marco deja de ser opaco—, y el suelo lo pone el
+propio vídeo:
+
+- La escala base es el **encaje a lo ancho**: el hueco ocupa siempre los 1080 px
+  del lienzo, y el tamaño del vídeo solo decide cuánto baja.
+- El borde inferior del vídeo marca dónde se pega el degradado de abajo y dónde
+  arranca la barra negra, topado al borde del lienzo. Un 16:9 a tamaño 1 deja
+  608 px de hueco y 665 de barra; ampliándolo al 250 % llega abajo del todo y no
+  queda barra.
+- El borde superior se puede subir pero **nunca bajar** del techo: por encima del
+  techo la plantilla es negro opaco y tapa el corte, y bajándolo se vería el filo.
+- Un vídeo que cabe entero no se puede subir, porque su borde de abajo es el que
+  manda dónde va la barra. Uno más largo que el hueco sí se recorre.
+
+Para esto la plantilla se dibuja **en tres piezas** en vez de como un PNG de una
+sola pieza: la parte de arriba hasta que se abre la ventana, que va siempre
+igual; el degradado de abajo recortado del propio PNG y pegado al filo del
+vídeo; y negro macizo de ahí al final del lienzo.
+
 ## Cómo se monta el MP4
 
 El navegador dibuja la plantilla y el rótulo en un canvas de 1080 × 1920 sobre
@@ -127,7 +162,9 @@ el rectángulo del vídeo se redondea a enteros en `computeLayout` y se le pasa 
 ffmpeg tal cual, para que las dos no puedan redondear distinto.
 
 La cadena de filtros es una sola línea: escalar, quitar lo que se sale, colocar
-sobre el lienzo negro y superponer la plantilla.
+sobre el lienzo negro y superponer la plantilla. Lo que el vídeo se salga por
+arriba o por abajo no hay que recortarlo: la plantilla es negro opaco en esas
+dos zonas y lo tapa igual, tanto en la previa como en el montaje.
 
 Cuatro cosas que no son opcionales, y que fallan de formas poco evidentes:
 

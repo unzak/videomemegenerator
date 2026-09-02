@@ -10,8 +10,12 @@ import {
   TEXT_MAX_W,
   TEXT_SAFE_BOTTOM,
   TEXT_SAFE_TOP,
+  FADE_BOTTOM_H,
+  FADE_BOTTOM_START,
+  FADE_TOP_END,
   TRACKING_EM,
-  VIDEO_H,
+  VIDEO_MAX_H,
+  VIDEO_MIN_H,
   VIDEO_Y,
   type Font,
 } from "./format.js";
@@ -54,9 +58,6 @@ export interface RenderOptions {
   colorText: string;
   colorHighlight: string;
 }
-
-/** El hueco del video, tal cual sale del PSD. No se mueve. */
-export const VIDEO_AREA: Rect = { x: 0, y: VIDEO_Y, w: CANVAS_W, h: VIDEO_H };
 
 /** Alto util del rotulo, entre el logo y el borde del degradado. */
 const TEXT_BAND_H = TEXT_SAFE_BOTTOM - TEXT_SAFE_TOP;
@@ -198,10 +199,47 @@ export interface Layout {
   lines: Line[];
   /** Cabeza de las mayusculas de la primera linea. */
   blockTop: number;
-  /** Hueco del video en la plantilla. Fijo. */
+  /**
+   * El hueco por el que se ve el video: del techo fijo al borde de abajo, que
+   * es el que se adapta. Con esto se sabe donde caen los gestos.
+   */
   videoArea: Rect;
-  /** Donde se pinta el video dentro del hueco. null si aun no hay video. */
+  /** Donde se pinta el video. null si aun no hay video. */
   video: Rect | null;
+  /**
+   * Donde acaba el video, y por tanto donde se pega el degradado de abajo y
+   * empieza la barra negra. Es lo que se mueve al cambiar el tamano del video.
+   */
+  videoBottom: number;
+}
+
+/**
+ * La escala del video. La base es el encaje a lo ancho, que es lo que manda: el
+ * hueco ocupa siempre los 1080 px del lienzo. El suelo de `VIDEO_MIN_H` solo
+ * entra con material muy apaisado, para que quede ventana.
+ */
+function videoScale(size: { width: number; height: number }, zoom: number): number {
+  return Math.max(CANVAS_W / size.width, VIDEO_MIN_H / size.height) * zoom;
+}
+
+/**
+ * Coloca el video. El borde de arriba se puede subir pero nunca bajar del techo
+ * del hueco: por encima del techo la plantilla es negro opaco y tapa el corte,
+ * y bajandolo se veria el filo cruzando el ancho.
+ */
+function videoRect(
+  size: { width: number; height: number },
+  transform: VideoTransform,
+): Rect {
+  const scale = videoScale(size, transform.zoom);
+  const w = Math.round(size.width * scale);
+  const h = Math.round(size.height * scale);
+  return {
+    x: Math.round((CANVAS_W - w) / 2 + transform.offsetX),
+    y: Math.round(VIDEO_Y + transform.offsetY),
+    w,
+    h,
+  };
 }
 
 /**
@@ -242,21 +280,15 @@ export function computeLayout(
   setFont(ctx, opts.font, size);
   const blockTop = TEXT_CENTER_Y - blockHeight(lines.length, size) / 2;
 
-  let video: Rect | null = null;
-  if (opts.frameSize) {
-    // El hueco es el que es, asi que hay que recortar: encaje cover. Se
-    // redondea aqui, y no al dibujar, porque este mismo rectangulo se le pasa
-    // a ffmpeg: si la previa y la pieza final redondean distinto, no cuadran.
-    const scale = coverScale(opts.frameSize, VIDEO_AREA, opts.transform.zoom);
-    const w = Math.round(opts.frameSize.width * scale);
-    const h = Math.round(opts.frameSize.height * scale);
-    video = {
-      x: Math.round((VIDEO_AREA.w - w) / 2 + opts.transform.offsetX),
-      y: Math.round(VIDEO_AREA.y + (VIDEO_AREA.h - h) / 2 + opts.transform.offsetY),
-      w,
-      h,
-    };
-  }
+  // El rectangulo se redondea aqui, y no al dibujar, porque este mismo va a
+  // parar a ffmpeg: si la previa y la pieza final redondean distinto, no
+  // cuadran.
+  const video = opts.frameSize ? videoRect(opts.frameSize, opts.transform) : null;
+  // El suelo del hueco lo pone el video, no el PSD. Topado al lienzo, que es
+  // hasta donde se puede aprovechar.
+  const videoBottom = video
+    ? Math.min(CANVAS_H, video.y + video.h)
+    : VIDEO_Y + VIDEO_MAX_H;
 
   return {
     width: CANVAS_W,
@@ -266,33 +298,49 @@ export function computeLayout(
     lineHeight: size * LINE_RATIO,
     lines,
     blockTop,
-    videoArea: VIDEO_AREA,
+    videoArea: { x: 0, y: VIDEO_Y, w: CANVAS_W, h: videoBottom - VIDEO_Y },
     video,
+    videoBottom,
   };
 }
 
-function coverScale(
-  size: { width: number; height: number },
-  area: Rect,
-  zoom: number,
-): number {
-  return Math.max(area.w / size.width, area.h / size.height) * zoom;
-}
-
 /**
- * Recorta el encuadre para que el video siga cubriendo todo el hueco. Con el
- * encaje cover siempre sobra imagen por algun lado: eso es justo lo que se
- * puede desplazar, y ni un pixel mas.
+ * Recorta el encuadre para que el video no deje nunca hueco. A lo ancho es lo
+ * de siempre: solo se puede mover lo que sobra del encaje. A lo alto el limite
+ * es otro, porque el borde de abajo ya no esta clavado: se puede subir el video
+ * para que la barra negra crezca, pero no bajarlo por debajo del techo ni dejar
+ * la ventana con menos de `VIDEO_MIN_H`.
  */
 export function clampVideoOffset(
   frameSize: { width: number; height: number },
   transform: VideoTransform,
 ): void {
-  const scale = coverScale(frameSize, VIDEO_AREA, transform.zoom);
-  const maxX = Math.max(0, (frameSize.width * scale - VIDEO_AREA.w) / 2);
-  const maxY = Math.max(0, (frameSize.height * scale - VIDEO_AREA.h) / 2);
+  const scale = videoScale(frameSize, transform.zoom);
+  const w = frameSize.width * scale;
+  const h = frameSize.height * scale;
+
+  const maxX = Math.max(0, (w - CANVAS_W) / 2);
   transform.offsetX = Math.min(maxX, Math.max(-maxX, transform.offsetX));
-  transform.offsetY = Math.min(maxY, Math.max(-maxY, transform.offsetY));
+
+  // Un video que cabe entero no se puede subir: su borde de abajo es el que
+  // manda donde va la barra negra, y moverlo seria recortarlo por gusto. Uno
+  // mas largo que el hueco si se recorre, hasta que acabe en el borde del
+  // lienzo.
+  const minY = Math.min(0, VIDEO_MAX_H - h);
+  transform.offsetY = Math.min(0, Math.max(minY, transform.offsetY));
+}
+
+/**
+ * Desplazamiento vertical de partida: el video centrado en el hueco. Con uno
+ * mas largo que el hueco, ver el centro es lo que se espera; con uno que cabe
+ * entero sale 0 y se pega al techo, que es donde tiene que ir.
+ */
+export function centerVideoOffset(
+  frameSize: { width: number; height: number },
+  zoom: number,
+): number {
+  const h = frameSize.height * videoScale(frameSize, zoom);
+  return Math.min(0, (VIDEO_MAX_H - h) / 2);
 }
 
 function prepare(ctx: CanvasRenderingContext2D, layout: Layout): void {
@@ -318,13 +366,10 @@ export function render(ctx: CanvasRenderingContext2D, opts: RenderOptions): Layo
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, layout.width, layout.height);
 
+  // Sin recortar: lo que se salga del hueco por arriba o por abajo lo tapa la
+  // plantilla, que ahi es negro opaco. Es lo mismo que hace ffmpeg.
   if (opts.frame && layout.video) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(VIDEO_AREA.x, VIDEO_AREA.y, VIDEO_AREA.w, VIDEO_AREA.h);
-    ctx.clip();
     ctx.drawImage(opts.frame, layout.video.x, layout.video.y, layout.video.w, layout.video.h);
-    ctx.restore();
   }
 
   drawPlate(ctx, opts, layout);
@@ -343,12 +388,33 @@ export function renderPlate(ctx: CanvasRenderingContext2D, opts: RenderOptions):
   return layout;
 }
 
+/**
+ * La plantilla, en tres piezas, porque el borde de abajo ya no esta donde lo
+ * dejo el PSD:
+ *
+ * 1. De arriba del todo hasta que se abre la ventana. Va siempre igual y en el
+ *    mismo sitio: el marco negro, el logo, los filetes y el degradado.
+ * 2. El degradado de abajo, recortado del propio PNG y pegado al borde inferior
+ *    del video, con su fila opaca justo en el filo.
+ * 3. Negro macizo de ahi al final del lienzo.
+ */
 function drawPlate(
   ctx: CanvasRenderingContext2D,
   opts: RenderOptions,
   layout: Layout,
 ): void {
-  if (opts.overlay) ctx.drawImage(opts.overlay, 0, 0, layout.width, layout.height);
+  const { overlay } = opts;
+  if (overlay) {
+    const w = layout.width;
+    ctx.drawImage(overlay, 0, 0, w, FADE_TOP_END, 0, 0, w, FADE_TOP_END);
+    ctx.drawImage(
+      overlay,
+      0, FADE_BOTTOM_START, w, FADE_BOTTOM_H,
+      0, layout.videoBottom - FADE_BOTTOM_H, w, FADE_BOTTOM_H,
+    );
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, layout.videoBottom, w, layout.height - layout.videoBottom);
+  }
   drawText(ctx, opts, layout);
 }
 
