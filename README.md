@@ -129,7 +129,7 @@ ffmpeg tal cual, para que las dos no puedan redondear distinto.
 La cadena de filtros es una sola línea: escalar, quitar lo que se sale, colocar
 sobre el lienzo negro y superponer la plantilla.
 
-Tres cosas que no son opcionales, y que fallan de formas poco evidentes:
+Cuatro cosas que no son opcionales, y que fallan de formas poco evidentes:
 
 - **El core de ffmpeg tiene que ser la build `esm`, no la `umd`.** El worker se
   crea con `type: "module"`, y ahí no existe `importScripts`, que es lo único
@@ -147,6 +147,17 @@ Tres cosas que no son opcionales, y que fallan de formas poco evidentes:
   propósito, y `scale` intenta conservar la del original metiendo un píxel no
   cuadrado: sin eso el MP4 sale marcado como 865:1538 en vez de 9:16 y los
   reproductores lo estiran.
+- **`-fps_mode vfr`.** Un origen sin cadencia fija se convierte en un montaje
+  eterno. Los `.webm` de MediaRecorder, por ejemplo, declaran una base de
+  tiempos de 1/1000 y ffmpeg deduce que van a 1000 fps: entonces duplica
+  fotogramas hasta llenar esa cadencia y un clip de 46 se codifica como 1840.
+  Con `vfr` respeta las marcas de tiempo del original y no duplica ni descarta
+  ninguno, así que un 30 fps sigue saliendo a 30 fps y un 60 fps a 60.
+
+En la consola queda el log de ffmpeg, en nivel `debug`, que es lo único que dice
+por dónde va un montaje cuando se atasca. El `Aborted()` del final **no es un
+fallo**: es el `exit()` normal de Emscripten cuando ffmpeg termina, y sale
+también en los montajes que van bien.
 
 Se usa la build de **un solo hilo** a propósito. La multihilo necesita
 `SharedArrayBuffer`, que solo se habilita con las cabeceras COOP/COEP, y GitHub

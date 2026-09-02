@@ -70,6 +70,10 @@ async function engine(handlers: EncodeHandlers): Promise<FFmpeg> {
   created.on("log", ({ message }) => {
     tail.push(message);
     if (tail.length > 40) tail.shift();
+    // A la consola tambien: cuando un montaje se atasca, el log de ffmpeg es
+    // lo unico que dice por donde va, y guardado en `tail` no se ve hasta que
+    // falla algo. Va en `debug`, que no ensucia la consola por defecto.
+    console.debug("[ffmpeg]", message);
   });
   await created.load({
     classWorkerURL: ffmpegWorkerURL,
@@ -132,6 +136,14 @@ function args(input: string, audio: "copy" | "aac", rect: Rect): string[] {
     "-preset", PRESET,
     "-crf", String(CRF),
     "-pix_fmt", "yuv420p",
+    // Sin esto, un origen sin cadencia fija se convierte en un montaje
+    // eterno. Los .webm de MediaRecorder, por ejemplo, declaran una base de
+    // tiempos de 1/1000 y ffmpeg deduce que van a 1000 fps: entonces duplica
+    // fotogramas hasta llenar esa cadencia y un clip de 46 se codifica como
+    // 1840. Con `vfr` respeta las marcas de tiempo del original y no duplica
+    // ni descarta ninguno, asi que un 30 fps sigue saliendo a 30 fps y un
+    // 60 fps a 60.
+    "-fps_mode", "vfr",
     ...(audio === "copy"
       // Copiar el audio es literalmente no tocarlo: sale bit a bit igual que
       // en el original. Solo se recodifica si el contenedor no lo admite.
