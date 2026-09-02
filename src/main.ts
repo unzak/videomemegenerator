@@ -9,6 +9,7 @@ import {
   FONT_SIZE,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  VIDEO_Y,
   ZOOM_MAX,
   ZOOM_MIN,
 } from "./format.js";
@@ -37,8 +38,11 @@ const fileEl = need<HTMLInputElement>("file");
 const pickEl = need<HTMLButtonElement>("pick");
 const fileNameEl = need<HTMLParagraphElement>("file-name");
 const seekEl = need<HTMLInputElement>("seek");
+const seekValueEl = need<HTMLSpanElement>("seek-value");
 const zoomEl = need<HTMLInputElement>("zoom");
 const zoomValueEl = need<HTMLSpanElement>("zoom-value");
+const bottomEl = need<HTMLInputElement>("bottom");
+const bottomValueEl = need<HTMLSpanElement>("bottom-value");
 const textColorEl = need<HTMLInputElement>("color-text");
 const highlightEl = need<HTMLInputElement>("color-highlight");
 const generateEl = need<HTMLButtonElement>("generate");
@@ -92,6 +96,7 @@ function options(): RenderOptions {
     text: textEl.value,
     font: FONT,
     fontSize: Number(sizeEl.value),
+    bottomMargin: Number(bottomEl.value),
     colorText: textColorEl.value,
     colorHighlight: highlightEl.value,
   };
@@ -144,6 +149,17 @@ for (const row of document.querySelectorAll<HTMLDivElement>(".swatches")) {
   }
 }
 
+/** m:ss, que es como lo escribe cualquier reproductor. */
+function clock(seconds: number): string {
+  if (!Number.isFinite(seconds)) return "0:00";
+  const total = Math.max(0, Math.round(seconds));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function showTime(): void {
+  seekValueEl.textContent = `${clock(sourceEl.currentTime)} / ${clock(sourceEl.duration)}`;
+}
+
 // --- Video ------------------------------------------------------------------
 
 /** Espera a un evento del <video>, con el error del propio elemento si falla. */
@@ -187,13 +203,21 @@ async function loadFile(file: File): Promise<void> {
   state.hasVideo = true;
   state.file = file;
   state.frameSize = { width: sourceEl.videoWidth, height: sourceEl.videoHeight };
+  state.transform = { zoom: 1, offsetX: 0, offsetY: 0 };
+  zoomEl.value = "1";
+  bottomEl.value = "0";
   // De partida, centrado en el hueco: con un video mas largo que el hueco, ver
   // el centro es lo que se espera. Uno que cabe entero se pega al techo solo.
-  state.transform = { zoom: 1, offsetX: 0, offsetY: centerVideoOffset(state.frameSize, 1) };
-  zoomEl.value = "1";
+  // El techo hay que preguntarlo, porque un rotulo largo lo habra bajado.
+  state.transform.offsetY = centerVideoOffset(
+    state.frameSize,
+    1,
+    computeLayout(previewCtx, options()).videoTop,
+  );
   seekEl.disabled = false;
   seekEl.max = String(sourceEl.duration || 1);
   seekEl.value = "0";
+  showTime();
 
   const mb = file.size / (1024 * 1024);
   fileNameEl.textContent =
@@ -240,7 +264,10 @@ seekEl.addEventListener("input", () => {
   if (!state.hasVideo) return;
   sourceEl.currentTime = Number(seekEl.value);
 });
-sourceEl.addEventListener("seeked", draw);
+sourceEl.addEventListener("seeked", () => {
+  showTime();
+  draw();
+});
 
 // --- Encuadre ---------------------------------------------------------------
 
@@ -254,7 +281,11 @@ function canvasScale(): number {
 }
 
 function clampOffset(): void {
-  if (state.frameSize) clampVideoOffset(state.frameSize, state.transform);
+  if (!state.frameSize) return;
+  // El techo del hueco depende del rotulo y del cuerpo, nunca del encuadre, asi
+  // que se le puede preguntar a la composicion antes de recortar nada.
+  const { videoTop } = computeLayout(previewCtx, options());
+  clampVideoOffset(state.frameSize, state.transform, videoTop);
 }
 
 function toCanvas(clientX: number, clientY: number): { x: number; y: number } {
@@ -289,6 +320,7 @@ function setZoom(zoom: number): void {
 }
 
 zoomEl.addEventListener("input", () => setZoom(Number(zoomEl.value)));
+bottomEl.addEventListener("input", draw);
 
 const pointers = new Map<number, { x: number; y: number }>();
 let lastX = 0;
@@ -417,11 +449,15 @@ function draw(): void {
     ? "sin rótulo"
     : `${n} ${n === 1 ? "línea" : "líneas"} a ${layout.fontSize.toFixed(1)} px` +
       (layout.shrunk ? " (reducido para que quepa)" : "");
+  const subido = layout.videoBottomAuto - layout.videoBottom;
+  bottomValueEl.textContent = subido > 0 ? `subido ${subido} px` : "automático";
+
   const hueco = state.hasVideo
     ? ` · hueco ${layout.videoArea.h} px` +
       (layout.videoBottom >= layout.height
         ? ", sin barra negra"
-        : `, barra de ${layout.height - layout.videoBottom} px`)
+        : `, barra de ${layout.height - layout.videoBottom} px`) +
+      (layout.videoTop > VIDEO_Y ? ` · degradado bajado a ${layout.videoTop}` : "")
     : "";
   previewInfoEl.textContent = `${layout.width} × ${layout.height} px · ${rotulo}${hueco}`;
 }

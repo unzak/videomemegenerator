@@ -8,13 +8,15 @@ import {
   LINE_RATIO,
   TEXT_CENTER_Y,
   TEXT_MAX_W,
-  TEXT_SAFE_BOTTOM,
   TEXT_SAFE_TOP,
-  FADE_BOTTOM_H,
-  FADE_BOTTOM_START,
-  FADE_TOP_END,
+  HEADER_LIFT,
+  SRC_FADE_BOTTOM_H,
+  SRC_FADE_BOTTOM_Y,
+  SRC_FADE_TOP_H,
+  SRC_HEADER_H,
+  TEXT_GAP_BOTTOM,
+  TEXT_MAX_BOTTOM,
   TRACKING_EM,
-  VIDEO_MAX_H,
   VIDEO_MIN_H,
   VIDEO_Y,
   type Font,
@@ -55,12 +57,27 @@ export interface RenderOptions {
    * logo y el hueco del video, se compone mas pequeño.
    */
   fontSize: number;
+  /**
+   * Cuanto se sube a mano el suelo del hueco, de 0 a 1. En 0 es automatico: la
+   * barra negra es justo lo que sobra por debajo del video, asi que crece y
+   * mengua con el. Subiendolo, la barra se agranda desde ahi, y como los dos
+   * extremos salen del encuadre, lo que se elija se readapta solo al cambiar
+   * el tamaño del video. En 1 el hueco queda en su minimo.
+   */
+  bottomMargin: number;
   colorText: string;
   colorHighlight: string;
 }
 
-/** Alto util del rotulo, entre el logo y el borde del degradado. */
-const TEXT_BAND_H = TEXT_SAFE_BOTTOM - TEXT_SAFE_TOP;
+/**
+ * Donde arranca la tinta del rotulo. Va centrado en `TEXT_CENTER_Y`, que es lo
+ * que reproduce el PSD, hasta que el bloque es tan alto que tocaria el logo:
+ * de ahi para abajo se apoya en el techo y crece hacia el hueco, que le hace
+ * sitio bajando el degradado.
+ */
+function blockTopFor(lineCount: number, size: number): number {
+  return Math.max(TEXT_SAFE_TOP, TEXT_CENTER_Y - blockHeight(lineCount, size) / 2);
+}
 
 /**
  * Parte el texto en segmentos. Lo que va entre asteriscos se resalta, el mismo
@@ -203,10 +220,8 @@ function compose(
   const lines = layoutLines(ctx, tokenize(parseSegments(opts.text)), size, TEXT_MAX_W);
   if (lines.length === 0) return { lines, fits: true };
   const widest = Math.max(0, ...lines.map((l) => lineWidth(ctx, l, size)));
-  return {
-    lines,
-    fits: blockHeight(lines.length, size) <= TEXT_BAND_H && widest <= TEXT_MAX_W,
-  };
+  const bottom = blockTopFor(lines.length, size) + blockHeight(lines.length, size);
+  return { lines, fits: bottom <= TEXT_MAX_BOTTOM && widest <= TEXT_MAX_W };
 }
 
 export interface Layout {
@@ -225,13 +240,22 @@ export interface Layout {
    * es el que se adapta. Con esto se sabe donde caen los gestos.
    */
   videoArea: Rect;
+  /**
+   * Techo del hueco: donde se pega el degradado de arriba. El del PSD mientras
+   * el rotulo quepa donde cabia, y mas abajo cuando no.
+   */
+  videoTop: number;
   /** Donde se pinta el video. null si aun no hay video. */
   video: Rect | null;
   /**
-   * Donde acaba el video, y por tanto donde se pega el degradado de abajo y
-   * empieza la barra negra. Es lo que se mueve al cambiar el tamano del video.
+   * Donde se pega el degradado de abajo y empieza la barra negra: el filo
+   * inferior del video, o mas arriba si se ha subido a mano.
    */
   videoBottom: number;
+  /** El filo inferior del video, que es donde llega la barra en automatico. */
+  videoBottomAuto: number;
+  /** Lo mas arriba que puede ponerse la barra sin cerrar el hueco. */
+  videoBottomMin: number;
 }
 
 /**
@@ -244,6 +268,17 @@ function videoScale(size: { width: number; height: number }, zoom: number): numb
 }
 
 /**
+ * El techo del hueco: el del PSD, salvo que el rotulo baje mas de lo que cabia
+ * ahi. Depende solo del texto y del cuerpo, nunca del encuadre, asi que se
+ * puede calcular antes de tocar el video.
+ */
+function videoTopFor(lineCount: number, size: number): number {
+  if (lineCount === 0) return VIDEO_Y;
+  const bottom = blockTopFor(lineCount, size) + blockHeight(lineCount, size);
+  return Math.max(VIDEO_Y, Math.round(bottom + TEXT_GAP_BOTTOM));
+}
+
+/**
  * Coloca el video. El borde de arriba se puede subir pero nunca bajar del techo
  * del hueco: por encima del techo la plantilla es negro opaco y tapa el corte,
  * y bajandolo se veria el filo cruzando el ancho.
@@ -251,13 +286,14 @@ function videoScale(size: { width: number; height: number }, zoom: number): numb
 function videoRect(
   size: { width: number; height: number },
   transform: VideoTransform,
+  top: number,
 ): Rect {
   const scale = videoScale(size, transform.zoom);
   const w = Math.round(size.width * scale);
   const h = Math.round(size.height * scale);
   return {
     x: Math.round((CANVAS_W - w) / 2 + transform.offsetX),
-    y: Math.round(VIDEO_Y + transform.offsetY),
+    y: Math.round(top + transform.offsetY),
     w,
     h,
   };
@@ -309,17 +345,24 @@ export function computeLayout(
 
   const lines = composed.lines;
   setFont(ctx, opts.font, size);
-  const blockTop = TEXT_CENTER_Y - blockHeight(lines.length, size) / 2;
+  const blockTop = blockTopFor(lines.length, size);
+  const videoTop = videoTopFor(lines.length, size);
 
   // El rectangulo se redondea aqui, y no al dibujar, porque este mismo va a
   // parar a ffmpeg: si la previa y la pieza final redondean distinto, no
   // cuadran.
-  const video = opts.frameSize ? videoRect(opts.frameSize, opts.transform) : null;
-  // El suelo del hueco lo pone el video, no el PSD. Topado al lienzo, que es
-  // hasta donde se puede aprovechar.
-  const videoBottom = video
-    ? Math.min(CANVAS_H, video.y + video.h)
-    : VIDEO_Y + VIDEO_MAX_H;
+  const video = opts.frameSize
+    ? videoRect(opts.frameSize, opts.transform, videoTop)
+    : null;
+
+  // El suelo del hueco lo pone el video, no el PSD: llega hasta su filo
+  // inferior, topado al lienzo. La barra puede subirse a mano de ahi para
+  // arriba, pero nunca por debajo del minimo del hueco.
+  const videoBottomAuto = video ? Math.min(CANVAS_H, video.y + video.h) : CANVAS_H;
+  const videoBottomMin = Math.min(videoBottomAuto, videoTop + VIDEO_MIN_H);
+  const videoBottom = Math.round(
+    videoBottomAuto - (videoBottomAuto - videoBottomMin) * clamp01(opts.bottomMargin),
+  );
 
   return {
     width: CANVAS_W,
@@ -329,10 +372,17 @@ export function computeLayout(
     lineHeight: size * LINE_RATIO,
     lines,
     blockTop,
-    videoArea: { x: 0, y: VIDEO_Y, w: CANVAS_W, h: videoBottom - VIDEO_Y },
+    videoArea: { x: 0, y: videoTop, w: CANVAS_W, h: videoBottom - videoTop },
+    videoTop,
     video,
     videoBottom,
+    videoBottomAuto,
+    videoBottomMin,
   };
+}
+
+function clamp01(value: number): number {
+  return Math.min(1, Math.max(0, value));
 }
 
 /**
@@ -345,6 +395,7 @@ export function computeLayout(
 export function clampVideoOffset(
   frameSize: { width: number; height: number },
   transform: VideoTransform,
+  top: number,
 ): void {
   const scale = videoScale(frameSize, transform.zoom);
   const w = frameSize.width * scale;
@@ -357,7 +408,7 @@ export function clampVideoOffset(
   // manda donde va la barra negra, y moverlo seria recortarlo por gusto. Uno
   // mas largo que el hueco si se recorre, hasta que acabe en el borde del
   // lienzo.
-  const minY = Math.min(0, VIDEO_MAX_H - h);
+  const minY = Math.min(0, CANVAS_H - top - h);
   transform.offsetY = Math.min(0, Math.max(minY, transform.offsetY));
 }
 
@@ -369,9 +420,10 @@ export function clampVideoOffset(
 export function centerVideoOffset(
   frameSize: { width: number; height: number },
   zoom: number,
+  top: number,
 ): number {
   const h = frameSize.height * videoScale(frameSize, zoom);
-  return Math.min(0, (VIDEO_MAX_H - h) / 2);
+  return Math.min(0, (CANVAS_H - top - h) / 2);
 }
 
 function prepare(ctx: CanvasRenderingContext2D, layout: Layout): void {
@@ -420,14 +472,20 @@ export function renderPlate(ctx: CanvasRenderingContext2D, opts: RenderOptions):
 }
 
 /**
- * La plantilla, en tres piezas, porque el borde de abajo ya no esta donde lo
- * dejo el PSD:
+ * La plantilla, en cuatro piezas, porque ninguno de los dos bordes del hueco
+ * esta ya donde lo dejo el PSD:
  *
- * 1. De arriba del todo hasta que se abre la ventana. Va siempre igual y en el
- *    mismo sitio: el marco negro, el logo, los filetes y el degradado.
- * 2. El degradado de abajo, recortado del propio PNG y pegado al borde inferior
- *    del video, con su fila opaca justo en el filo.
- * 3. Negro macizo de ahi al final del lienzo.
+ * 1. De arriba del todo hasta el techo por defecto. Es la unica pieza que no se
+ *    mueve nunca: el marco negro, el logo y los filetes.
+ * 2. Negro macizo hasta el techo de verdad, que es lo que se abre cuando el
+ *    rotulo baja de donde cabia.
+ * 3. Los dos degradados, recortados del propio PNG y pegados cada uno a su
+ *    borde: el de arriba arrancando en el techo, el de abajo con su fila opaca
+ *    justo en el filo inferior.
+ * 4. Negro macizo del filo de abajo al final del lienzo.
+ *
+ * Recortarlos del PNG en vez de repintarlos es lo que mantiene el desvanecido
+ * exactamente igual que en el PSD estando donde este.
  */
 function drawPlate(
   ctx: CanvasRenderingContext2D,
@@ -437,13 +495,25 @@ function drawPlate(
   const { overlay } = opts;
   if (overlay) {
     const w = layout.width;
-    ctx.drawImage(overlay, 0, 0, w, FADE_TOP_END, 0, 0, w, FADE_TOP_END);
+    ctx.fillStyle = "#000000";
+
+    // El bloque entero, subido. Lo que se sale por arriba es negro vacio del
+    // PSD, del que sobran 347 px por encima del logo.
+    ctx.drawImage(overlay, 0, 0, w, SRC_HEADER_H, 0, -HEADER_LIFT, w, SRC_HEADER_H);
+    if (layout.videoTop > VIDEO_Y) {
+      ctx.fillRect(0, VIDEO_Y, w, layout.videoTop - VIDEO_Y);
+    }
     ctx.drawImage(
       overlay,
-      0, FADE_BOTTOM_START, w, FADE_BOTTOM_H,
-      0, layout.videoBottom - FADE_BOTTOM_H, w, FADE_BOTTOM_H,
+      0, SRC_HEADER_H, w, SRC_FADE_TOP_H,
+      0, layout.videoTop, w, SRC_FADE_TOP_H,
     );
-    ctx.fillStyle = "#000000";
+
+    ctx.drawImage(
+      overlay,
+      0, SRC_FADE_BOTTOM_Y, w, SRC_FADE_BOTTOM_H,
+      0, layout.videoBottom - SRC_FADE_BOTTOM_H, w, SRC_FADE_BOTTOM_H,
+    );
     ctx.fillRect(0, layout.videoBottom, w, layout.height - layout.videoBottom);
   }
   drawText(ctx, opts, layout);

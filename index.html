@@ -45,19 +45,19 @@
         </div>
 
         <div class="field">
-          <label for="seek">
-            Fotograma de la previa
-            <span class="muted small">· solo para encuadrar; no recorta el vídeo</span>
-          </label>
-          <input type="range" id="seek" min="0" max="1" step="0.001" value="0" disabled />
-        </div>
-
-        <div class="field">
           <label for="zoom">
             Tamaño del vídeo
             <span class="muted small">· <span id="zoom-value">100</span> % · la barra negra de abajo se adapta</span>
           </label>
           <input type="range" id="zoom" min="1" max="3" step="0.01" value="1" />
+        </div>
+
+        <div class="field">
+          <label for="bottom">
+            Margen inferior
+            <span class="muted small">· <span id="bottom-value">automático</span> · opcional</span>
+          </label>
+          <input type="range" id="bottom" min="0" max="1" step="0.001" value="0" />
         </div>
 
         <details class="section">
@@ -86,6 +86,13 @@
         <div class="stage">
           <canvas id="preview"></canvas>
         </div>
+
+        <div class="scrub">
+          <input type="range" id="seek" min="0" max="1" step="0.001" value="0" disabled
+                 aria-label="Fotograma de la previa" />
+          <span class="muted small" id="seek-value">0:00 / 0:00</span>
+        </div>
+
         <p class="muted small" id="preview-info"></p>
       </section>
     </main>

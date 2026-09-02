@@ -7,9 +7,10 @@ Reproduce `VIDEO MEME NUEVO.psd`: el marco negro con el logo y los filetes, el
 rótulo donde va la capa `TEXTO`, y el vídeo asomando por el hueco de la ventana
 con sus bordes desvanecidos.
 
-Con una diferencia: **el suelo del hueco no está clavado**. El degradado de
-abajo va pegado al borde inferior del vídeo, así que la barra negra crece y
-mengua con él y un vídeo que da de sí aprovecha toda la parte de abajo.
+Con una diferencia: **el hueco no está clavado por ningún lado**. Los dos
+degradados siguen a lo que tienen al lado —el de arriba baja cuando el rótulo
+necesita sitio, el de abajo va pegado al filo inferior del vídeo—, y el bloque
+de arriba va 30 px más alto que en el PSD. El logo y los filetes no se mueven.
 
 **Todo ocurre en el navegador.** No hay servidor y no hay nada que instalar: el
 montaje lo hace una build de ffmpeg compilada a WebAssembly, así que la página
@@ -21,23 +22,29 @@ publicada funciona sola.
    envuelvas en `*asteriscos*` sale en el color de resaltado, igual que en
    news-maker y memegenerator.
 2. Ajusta el **tamaño de letra** si quieres. Viene puesto el del PSD, 52,3 px.
-   Es un tope, no una orden: el rótulo se compone más pequeño si no cabe entre
-   el logo y el hueco del vídeo, y abajo te dice si ha tenido que reducirlo.
-   Pasado el mayor cuerpo al que cabe, seguir subiendo no hace nada: se queda
-   ahí, nunca encoge.
+   Con una o dos líneas no pasa nada: el rótulo cae donde el PSD lo pone. En
+   cuanto pide más sitio, **el degradado de arriba baja para dejárselo** en vez
+   de encoger la letra, y el hueco del vídeo empieza más abajo. Solo se reduce
+   si llegase a dejar el hueco por debajo de su mínimo, cosa que con el cuerpo
+   topado en 76 px no pasa hasta las once líneas.
 3. Arrastra el **vídeo**, o elígelo con el botón.
-4. Si el primer fotograma sale en negro —que pasa a menudo—, mueve la barra de
-   **fotograma de la previa** hasta ver algo. Solo cambia lo que se ve mientras
-   encuadras: al vídeo no le recorta nada.
-5. Ajusta el **tamaño del vídeo** con la barra. **La barra negra de abajo se
-   adapta sola**: al ampliar, el vídeo baja y la barra se encoge, hasta llegar
-   al borde del lienzo y desaparecer; al reducir, la barra vuelve a crecer.
-   Arrastrando sobre la vista previa lo mueves; si es más largo que el hueco lo
-   recorres de arriba abajo, y el encuadre está topado para que no deje nunca
-   hueco.
-6. Cambia los **colores** si quieres. El apartado va plegado, porque casi
+4. Si el primer fotograma sale en negro —que pasa a menudo—, recórrelo con la
+   **barra que hay bajo la previa**, que va como la de un reproductor y marca el
+   tiempo. Solo cambia lo que se ve mientras encuadras: al vídeo no le recorta
+   nada.
+5. Ajusta el **tamaño del vídeo** con la barra. **El margen negro de abajo se
+   adapta solo**: al ampliar, el vídeo baja y el margen se encoge, hasta llegar
+   al borde del lienzo y desaparecer; al reducir, vuelve a crecer. Arrastrando
+   sobre la vista previa lo mueves; si es más largo que el hueco lo recorres de
+   arriba abajo, y el encuadre está topado para que no deje nunca hueco.
+6. Si quieres **más margen abajo** del que sale solo, súbelo con la barra de
+   **margen inferior**. Es opcional: en cero es automático. Lo que elijas se
+   readapta al cambiar el tamaño del vídeo, porque los dos extremos de esa barra
+   salen del encuadre — el mismo punto vale 195 px con el vídeo al 100 % y 802
+   con el vídeo al 200 %.
+7. Cambia los **colores** si quieres. El apartado va plegado, porque casi
    siempre son los mismos.
-7. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
+8. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
    (unos 30 MB, luego queda en caché). Abajo aparece el resultado con el botón
    de descarga.
 
@@ -95,10 +102,10 @@ se adivinan mirando la imagen:
 | --- | --- | --- |
 | Lienzo | 1080 × 1920 | cabecera del PSD |
 | Techo del hueco | y = 647 | capa `PLANTILLA`: última fila opaca antes de la ventana |
+| Fin del logo y los filetes | y = 496 | tinta de la capa `PLANTILLA` |
 | Degradado de arriba | y 647 … 802 | de alfa 255 a 0 |
 | Degradado de abajo | 157 px | y 1355 … 1511 en el PSD, de alfa 0 a 255 |
 | Ventana limpia del PSD | y 803 … 1355 | el tramo con alfa 0 |
-| Fin del logo | y = 496 | tinta de la capa `PLANTILLA` |
 | Fuente | SF Pro Display Bold, 52,28 px | `FontSize` 42 × escala 1,24484 de la capa |
 | Negrita sintética | sí | `FauxBold: true` sobre la Bold |
 | Mayúsculas | siempre | `FontCaps: 2` |
@@ -106,6 +113,7 @@ se adivinan mirando la imagen:
 | Tracking | −20 / 1000 eme | `Tracking` del `StyleRun` |
 | Ancho de párrafo | 915 px | `BoxBounds` 736 × escala 1,24321 |
 | Centro del bloque | y = 580 | tinta del PSD de 529 a 631 |
+| Aire bajo el rótulo | 16 px | de la última baseline (631) al techo del hueco (647) |
 | Color | `#ffffff` | `FillColor` del `StyleRun` |
 
 Comparado píxel a píxel con la referencia exportada del PSD, el marco entero
@@ -113,7 +121,7 @@ Comparado píxel a píxel con la referencia exportada del PSD, el marco entero
 solo quedan los bordes de las letras, que es donde el rasterizador de Chrome no
 puede coincidir con el de Photoshop.
 
-Cuatro trampas que costaron encontrar, por si alguien vuelve por aquí:
+Cinco trampas que costaron encontrar, por si alguien vuelve por aquí:
 
 - **El vídeo tiene que llegar por debajo de los degradados, no hasta el borde de
   la ventana limpia.** El alfa de la plantilla no cae a cero de golpe: baja de
@@ -130,30 +138,58 @@ Cuatro trampas que costaron encontrar, por si alguien vuelve por aquí:
   último.** Con el tracking negativo del PSD, `measureText` devuelve una cola de
   menos que descentraría el rótulo medio píxel si no se descuenta.
 - El alfa de la plantilla es **función pura de la fila**: no varía a lo ancho.
-  Eso es lo que permite recortar y colocar el vídeo con números enteros sin que
+  Eso es lo que permite recortar los degradados y pegarlos en otro sitio sin que
   se note ninguna costura.
+- **El ajuste del cuerpo hay que buscarlo, no calcularlo por proporción.** Al
+  subir el tamaño llega un momento en que una línea deja de entrar en la caja y
+  el rótulo pasa de dos líneas a tres; encoger entonces por la altura que ocupan
+  tres devuelve un cuerpo al que vuelven a caber dos, mucho más pequeño del que
+  de verdad cabría. Se veía como que ampliar de más empequeñecía el texto. Se
+  busca por bisección el mayor cuerpo que cabe, que depende solo del texto, así
+  que subir el deslizador nunca puede achicar el rótulo.
 
-## El suelo que se adapta
+## Un hueco que no está clavado
 
-El PSD deja la ventana clavada entre 647 y 1511. Aquí solo el techo es fijo —ahí
-es donde acaba el rótulo y el marco deja de ser opaco—, y el suelo lo pone el
-propio vídeo:
+El PSD deja la ventana entre 647 y 1511. Aquí los dos bordes se mueven, cada uno
+siguiendo a lo que tiene al lado.
 
-- La escala base es el **encaje a lo ancho**: el hueco ocupa siempre los 1080 px
-  del lienzo, y el tamaño del vídeo solo decide cuánto baja.
-- El borde inferior del vídeo marca dónde se pega el degradado de abajo y dónde
-  arranca la barra negra, topado al borde del lienzo. Un 16:9 a tamaño 1 deja
-  608 px de hueco y 665 de barra; ampliándolo al 250 % llega abajo del todo y no
-  queda barra.
-- El borde superior se puede subir pero **nunca bajar** del techo: por encima del
-  techo la plantilla es negro opaco y tapa el corte, y bajándolo se vería el filo.
-- Un vídeo que cabe entero no se puede subir, porque su borde de abajo es el que
-  manda dónde va la barra. Uno más largo que el hueco sí se recorre.
+**El techo lo pone el rótulo.** Por defecto está donde el PSD lo dejó, subido los
+30 px del bloque; ahí es donde el marco deja de ser opaco. Cuando el rótulo baja
+de donde cabía, el degradado de arriba baja con él, 16 px por debajo de la última
+baseline — el mismo aire que hay en el PSD. La alternativa era encoger la letra,
+y encoger la letra es lo que hace que un titular de tres líneas se lea peor que
+el vídeo que lleva debajo.
 
-Para esto la plantilla se dibuja **en tres piezas** en vez de como un PNG de una
-sola pieza: la parte de arriba hasta que se abre la ventana, que va siempre
-igual; el degradado de abajo recortado del propio PNG y pegado al filo del
-vídeo; y negro macizo de ahí al final del lienzo.
+**El suelo lo pone el vídeo.** La escala base es el **encaje a lo ancho**: el
+hueco ocupa siempre los 1080 px del lienzo, y el tamaño solo decide cuánto baja.
+El filo inferior del vídeo marca dónde se pega el degradado de abajo y dónde
+arranca el margen negro, topado al borde del lienzo. Un 16:9 al 100 % deja 608 px
+de hueco y 665 de margen; al 250 % llega abajo del todo y no queda margen. La
+barra de **margen inferior** sube ese filo a mano si se quiere más negro, y como
+sus dos extremos salen del encuadre, lo elegido se readapta al cambiar el tamaño.
+
+Dos topes que no se ven pero mandan:
+
+- El borde de arriba del vídeo se puede subir pero **nunca bajar** del techo: por
+  encima la plantilla es negro opaco y tapa el corte, y bajándolo se vería el
+  filo cruzando el ancho.
+- Un vídeo que cabe entero no se puede subir, porque su filo de abajo es el que
+  manda dónde va el margen. Uno más largo que el hueco sí se recorre arrastrando.
+
+**Y el bloque de arriba va 30 px más alto que en el PSD.** Por encima del logo el
+PSD deja 347 px de negro vacío que no pintan nada, y subiendo el bloque ese aire
+se le regala al vídeo. Es el único número del `format.ts` que no sale de medir,
+así que está suelto en `HEADER_LIFT` para poder moverlo de un sitio: con 0 la
+composición vuelve a ser la del PSD, clavada. Ojo al subirlo mucho, que **en el
+feed de Instagram el recorte a 4:5 ya se come los 285 px de arriba**, y el logo
+solo tiene 62 px de aire por delante de ese corte.
+
+Para todo esto la plantilla se dibuja **en cuatro piezas** en vez de como un PNG
+de una sola: el bloque de arriba, subido; negro macizo hasta el techo de verdad;
+los dos degradados, recortados del propio PNG y pegados cada uno a su borde; y
+negro macizo del filo de abajo al final del lienzo. Recortarlos del PNG en vez de
+repintarlos es lo que mantiene el desvanecido exactamente igual que en el PSD
+esté donde esté.
 
 ## Cómo se monta el MP4
 

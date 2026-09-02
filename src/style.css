@@ -285,6 +285,23 @@ input[type="range"]:disabled {
   color: var(--error);
 }
 
+/*
+ * El fotograma va debajo de la previa y sin etiqueta, como la barra de un
+ * reproductor: es lo que se espera de algo que recorre un video, y ahi se
+ * arrastra mirando la imagen en vez de mirando el panel.
+ */
+.scrub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+.scrub > span {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .stage {
   background: var(--panel-2);
   border: 1px solid var(--line);

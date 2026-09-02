@@ -12,54 +12,58 @@ export const CANVAS_W = 1080;
 export const CANVAS_H = 1920;
 
 /**
+ * Filas de `overlay.png`, que es la capa `PLANTILLA` tal cual salio del PSD.
+ * Son coordenadas **del archivo**, no del lienzo: las piezas se recortan de
+ * aqui y se pegan donde toque, que ya no es donde estaban.
+ */
+const SRC_FADE_TOP_Y = 647;
+export const SRC_FADE_TOP_H = 803 - SRC_FADE_TOP_Y;
+export const SRC_FADE_BOTTOM_Y = 1355;
+export const SRC_FADE_BOTTOM_H = 1512 - SRC_FADE_BOTTOM_Y;
+/** Lo que hay por encima del degradado: marco, logo y filetes, en una pieza. */
+export const SRC_HEADER_H = SRC_FADE_TOP_Y;
+
+/**
+ * Lo que sube todo el bloque de arriba —logo, filetes y rotulo— respecto al
+ * PSD. Por encima del logo el PSD deja 347 px de negro vacio que no pintan
+ * nada, y subiendo el bloque ese aire se le regala al video.
+ *
+ * Es el unico numero de este archivo que no sale de medir: es una decision de
+ * diseño, y esta suelto justo para poder moverla de un sitio. Con 0 la
+ * composicion vuelve a ser la del PSD, clavada.
+ */
+export const HEADER_LIFT = 30;
+
+/**
  * El hueco del video. La capa `PLANTILLA` es negro opaco de arriba abajo salvo
  * una ventana con los bordes desvanecidos: el alfa baja de 255 a 0 entre las
  * filas 647 y 802, se queda a 0 hasta la 1355, y vuelve a 255 en la 1512.
  *
- * El techo no se mueve: ahi es donde el marco negro deja de ser opaco, justo
- * debajo del rotulo. Lo que si se mueve es el suelo, porque el degradado de
- * abajo va pegado al borde inferior del video en vez de estar clavado donde lo
- * dejo el PSD. Asi un video que da de si aprovecha toda la parte de abajo, y
- * uno corto deja mas barra negra, en vez de recortarse siempre a la misma
- * altura.
+ * Aqui ninguno de los dos bordes esta clavado donde lo dejo el PSD: **los dos
+ * degradados siguen a lo que tienen al lado**. El de arriba baja cuando el
+ * rotulo necesita mas sitio, y el de abajo va pegado al filo inferior del
+ * video. Lo que no se mueve es el logo ni los filetes, que se quedan donde el
+ * PSD los puso.
+ *
+ * En el PSD el techo esta en 647, la ultima fila opaca. Aqui todo el bloque de
+ * arriba va `HEADER_LIFT` px mas alto, asi que el techo por defecto sube con
+ * el. De ese techo el degradado no sube nunca; con una o dos lineas de rotulo,
+ * que es el caso normal, el hueco empieza justo ahi.
  */
-export const VIDEO_Y = 647;
+export const VIDEO_Y = SRC_FADE_TOP_Y - HEADER_LIFT;
 
 /**
- * Primera fila con alfa 0: donde acaba el degradado de arriba y el video se ve
- * ya entero. Es tambien el alto de la pieza de arriba de la plantilla, que se
- * dibuja siempre igual y en el mismo sitio.
- */
-export const FADE_TOP_END = 803;
-
-/**
- * El degradado de abajo, dentro de la plantilla: ultima fila con alfa 0 y
- * primera opaca de vuelta. Esta banda se recorta del PNG y se pega donde acabe
- * el video, con su fila opaca justo en el borde.
- */
-export const FADE_BOTTOM_START = 1355;
-export const FADE_BOTTOM_END = 1512;
-export const FADE_BOTTOM_H = FADE_BOTTOM_END - FADE_BOTTOM_START;
-
-/**
- * Hasta donde puede llegar el video: el borde del lienzo. Ahi no queda barra
- * negra, solo el desvanecido de los ultimos 157 px.
- */
-export const VIDEO_MAX_H = CANVAS_H - VIDEO_Y;
-
-/**
- * Y de donde no puede bajar. Con esto el borde inferior nunca sube de 1060, o
- * sea que siempre quedan 100 px de ventana limpia entre los dos degradados.
- * Solo entra en juego con material muy apaisado: un 16:9 a todo lo ancho ya da
- * 607 px de alto.
+ * Lo que nunca se estrecha el hueco, pase lo que pase con el rotulo o con la
+ * barra de abajo. Deja 100 px de ventana limpia entre los dos degradados.
  */
 export const VIDEO_MIN_H = 413;
 
 /**
- * Donde acaba la tinta del logo y los filetes dentro de `PLANTILLA`. Es el
- * techo real del rotulo: por encima de aqui se monta sobre la cara.
+ * Donde acaba la tinta del logo y los filetes dentro de `PLANTILLA`, en filas
+ * del archivo. De aqui sale `TEXT_SAFE_TOP`: 17 px mas abajo, y luego los dos
+ * suben lo mismo que el bloque.
  */
-export const ART_BOTTOM = 496;
+export const SRC_ART_BOTTOM = 496;
 
 /**
  * Capa `TEXTO`: SFProDisplay-Bold, FontSize 42 x la escala 1.24484 del layer.
@@ -113,17 +117,28 @@ export const TEXT_MAX_W = 915;
  * tinta se centra en 580. Anclar por el centro y no por la primera linea es lo
  * que mantiene el rotulo equilibrado tanto con una linea como con cuatro.
  */
-export const TEXT_CENTER_Y = 580;
+export const TEXT_CENTER_Y = 580 - HEADER_LIFT;
 
 /**
- * Banda por la que se puede mover el rotulo. Por arriba, 16 px de respiro bajo
- * el logo; por abajo, la ultima fila en la que la plantilla todavia es negro
- * opaco, porque en cuanto empieza el degradado el texto se apoyaria sobre el
- * video. Es simetrica respecto a TEXT_CENTER_Y a proposito: asi el caso de dos
- * lineas reproduce el PSD sin desplazarse.
+ * Techo del rotulo: 16 px de respiro bajo el logo. De aqui no sube, porque por
+ * encima se montaria sobre la cara.
  */
-export const TEXT_SAFE_TOP = 513;
-export const TEXT_SAFE_BOTTOM = 647;
+export const TEXT_SAFE_TOP = SRC_ART_BOTTOM + 17 - HEADER_LIFT;
+
+/**
+ * Aire entre la ultima baseline del rotulo y el techo del hueco. Sale del PSD:
+ * la segunda linea cae en 631 y la ventana se abre en 647. Es lo que empuja el
+ * degradado de arriba cuando el rotulo crece.
+ */
+export const TEXT_GAP_BOTTOM = SRC_FADE_TOP_Y - 631;
+
+/**
+ * Hasta donde puede bajar la tinta del rotulo. No es una medida del PSD: es lo
+ * que queda de empujar el techo del hueco hasta dejarlo en su minimo. Con el
+ * cuerpo topado en 76 px caben once lineas antes de llegar aqui, asi que en la
+ * practica el rotulo ya no se reduce nunca: lo que se mueve es el degradado.
+ */
+export const TEXT_MAX_BOTTOM = CANVAS_H - VIDEO_MIN_H - TEXT_GAP_BOTTOM;
 
 /** `FillColor` del StyleRun: blanco puro. */
 export const COLOR_TEXT = "#ffffff";
