@@ -206,7 +206,7 @@ la banda entera habría acortado también los filetes, que es otra cosa. Entre e
 final de cada filete y el logo quedan 16 px, que el halo cubre de sobra.
 
 Reducirlo devuelve 14 px por arriba, porque al escalar desde el centro el borde
-superior baja;  sube la cabecera esos mismos 14 para que el logo
+superior baja; `ART_LIFT` sube la cabecera esos mismos 14 para que el logo
 arranque donde arrancaba y la reducción entera se convierta en sitio para el
 vídeo.
 
