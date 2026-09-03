@@ -36,18 +36,16 @@
         </div>
 
         <h2>2 · Vídeo</h2>
-        <div id="drop" class="drop">
+        <div class="field">
           <input type="file" id="file" accept="video/*" hidden />
-          <p><strong>Arrastra un vídeo aquí</strong></p>
-          <p class="muted">o</p>
-          <button type="button" id="pick" class="btn-secondary">Elegir archivo…</button>
+          <button type="button" id="pick" class="btn-secondary wide">Elegir vídeo…</button>
           <p class="muted small" id="file-name">Ningún archivo seleccionado</p>
         </div>
 
         <div class="field">
           <label for="zoom">
             Tamaño del vídeo
-            <span class="muted small">· <span id="zoom-value">100</span> % · la barra negra de abajo se adapta</span>
+            <span class="muted small">· <span id="zoom-value">100</span> %</span>
           </label>
           <input type="range" id="zoom" min="1" max="3" step="0.01" value="1" />
         </div>
@@ -103,6 +101,8 @@
       <p class="muted small" id="result-info"></p>
       <button type="button" id="download" class="btn">Descargar MP4</button>
     </section>
+
+    <div id="drop" class="drop" hidden><p>Suelta el vídeo</p></div>
 
     <video id="source" hidden playsinline muted preload="auto"></video>
 

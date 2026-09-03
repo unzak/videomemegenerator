@@ -194,26 +194,41 @@ input[type="range"]:disabled {
   opacity: 0.4;
 }
 
+/*
+ * El video se suelta en cualquier parte de la ventana, no en una caja: la caja
+ * ocupaba sitio para no hacer nada mas que ser una diana. Esto es solo el aviso
+ * de que se puede soltar, y solo sale mientras se arrastra algo por encima.
+ */
 .drop {
-  border: 1px dashed var(--line);
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(18 16 15 / 88%);
+  border: 3px dashed var(--accent);
   border-radius: var(--radius);
-  background: var(--panel-2);
-  padding: 22px 16px;
-  text-align: center;
+  pointer-events: none;
 }
 
-/* Las barras del encuadre van pegadas debajo de la caja del video. */
-.drop + .field {
-  margin-top: 12px;
-}
-
-.drop.over {
-  border-color: var(--accent);
-  border-style: solid;
+/*
+ * Sin esto el aviso no se esconde nunca: el `display: flex` de arriba le gana
+ * al `display: none` que el navegador le pone al atributo `hidden`, porque una
+ * regla de hoja de estilos manda sobre la del agente de usuario.
+ */
+.drop[hidden] {
+  display: none;
 }
 
 .drop p {
-  margin: 2px 0;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.wide {
+  width: 100%;
 }
 
 .btn,

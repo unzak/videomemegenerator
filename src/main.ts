@@ -243,18 +243,37 @@ fileEl.addEventListener("change", () => {
   if (file) void loadFile(file);
 });
 
-for (const type of ["dragenter", "dragover"]) {
-  dropEl.addEventListener(type, (e) => {
-    e.preventDefault();
-    dropEl.classList.add("over");
-  });
+/**
+ * Se suelta en cualquier parte de la ventana. `dragleave` salta tambien al
+ * pasar de un elemento a otro por dentro, asi que hay que contar entradas y
+ * salidas en vez de fiarse del evento: si no, el aviso parpadea al cruzar
+ * cualquier borde de camino a donde se quiere soltar.
+ */
+let dragDepth = 0;
+
+function showDrop(visible: boolean): void {
+  dragDepth = visible ? dragDepth : 0;
+  dropEl.hidden = !visible;
 }
-for (const type of ["dragleave", "drop"]) {
-  dropEl.addEventListener(type, () => dropEl.classList.remove("over"));
-}
-dropEl.addEventListener("drop", (e) => {
+
+window.addEventListener("dragenter", (e) => {
   e.preventDefault();
-  const file = (e as DragEvent).dataTransfer?.files?.[0];
+  dragDepth += 1;
+  dropEl.hidden = false;
+});
+
+window.addEventListener("dragover", (e) => e.preventDefault());
+
+window.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  dragDepth -= 1;
+  if (dragDepth <= 0) showDrop(false);
+});
+
+window.addEventListener("drop", (e) => {
+  e.preventDefault();
+  showDrop(false);
+  const file = e.dataTransfer?.files?.[0];
   if (file) void loadFile(file);
 });
 

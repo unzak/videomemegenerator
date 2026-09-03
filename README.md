@@ -27,7 +27,8 @@ publicada funciona sola.
    de encoger la letra, y el hueco del vídeo empieza más abajo. Solo se reduce
    si llegase a dejar el hueco por debajo de su mínimo, cosa que con el cuerpo
    topado en 76 px no pasa hasta las once líneas.
-3. Arrastra el **vídeo**, o elígelo con el botón.
+3. Suelta el **vídeo** en cualquier parte de la página —no hay que apuntar a
+   ninguna caja— o elígelo con el botón.
 4. Si el primer fotograma sale en negro —que pasa a menudo—, recórrelo con la
    **barra que hay bajo la previa**, que va como la de un reproductor y marca el
    tiempo. Solo cambia lo que se ve mientras encuadras: al vídeo no le recorta
