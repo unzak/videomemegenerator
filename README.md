@@ -10,7 +10,7 @@ con sus bordes desvanecidos.
 Con una diferencia: **el hueco no está clavado por ningún lado**. Los dos
 degradados siguen a lo que tienen al lado —el de arriba baja cuando el rótulo
 necesita sitio, el de abajo va pegado al filo inferior del vídeo—, y el bloque
-de arriba va 30 px más alto que en el PSD. El logo y los filetes no se mueven.
+de arriba va 52 px más alto que en el PSD. El logo y los filetes no se mueven.
 
 **Todo ocurre en el navegador.** No hay servidor y no hay nada que instalar: el
 montaje lo hace una build de ffmpeg compilada a WebAssembly, así que la página
@@ -105,7 +105,7 @@ se adivinan mirando la imagen:
 | Lienzo | 1080 × 1920 | cabecera del PSD |
 | Techo del hueco | y = 647 | capa `PLANTILLA`: última fila opaca antes de la ventana |
 | Fin del logo y los filetes | y = 496 | tinta de la capa `PLANTILLA` |
-| Degradado de arriba | y 647 … 802 | de alfa 255 a 0 |
+| Degradado de arriba | 156 px | y 647 … 802 en el PSD, de alfa 255 a 0 |
 | Degradado de abajo | 157 px | y 1355 … 1511 en el PSD, de alfa 0 a 255 |
 | Ventana limpia del PSD | y 803 … 1355 | el tramo con alfa 0 |
 | Fuente | SF Pro Display Bold, 52,28 px | `FontSize` 42 × escala 1,24484 de la capa |
@@ -178,13 +178,25 @@ Dos topes que no se ven pero mandan:
 - Un vídeo que cabe entero no se puede subir, porque su filo de abajo es el que
   manda dónde va el margen. Uno más largo que el hueco sí se recorre arrastrando.
 
-**Y el bloque de arriba va 30 px más alto que en el PSD.** Por encima del logo el
+**Y el bloque de arriba va 52 px más alto que en el PSD.** Por encima del logo el
 PSD deja 347 px de negro vacío que no pintan nada, y subiendo el bloque ese aire
 se le regala al vídeo. Es el único número del `format.ts` que no sale de medir,
 así que está suelto en `HEADER_LIFT` para poder moverlo de un sitio: con 0 la
-composición vuelve a ser la del PSD, clavada. Ojo al subirlo mucho, que **en el
-feed de Instagram el recorte a 4:5 ya se come los 285 px de arriba**, y el logo
-solo tiene 62 px de aire por delante de ese corte.
+composición vuelve a ser la del PSD, clavada.
+
+El tope de ese número no es el borde del lienzo, es el del **feed de Instagram**,
+que recorta la pieza a 4:5 y se come las 285 primeras filas. El logo empieza en
+la 347, así que de ahí al corte solo quedan **62 px de negro, y ese es todo el
+margen que hay para comerse**: con 62 el logo quedaría pegado al filo del recorte
+y con cualquier cosa por encima se le corta el halo. Con estos 52, la primera
+fila con tinta del logo cae en la 299, catorce por debajo del corte.
+
+**El degradado de arriba se pinta comprimido**, 90 px en vez de los 156 del PSD.
+Los 156 se comían media cabecera antes de que el vídeo se viera entero; con 90 la
+entrada es mucho más corta y esa diferencia —77 px medidos— se gana de imagen. Se
+comprime, no se recorta: pintándolo más bajo, el desvanecido conserva su curva
+entera y solo pasa más deprisa. Recortando filas se quedaría a medias y el corte
+se vería cruzando el ancho.
 
 Para todo esto la plantilla se dibuja **en cuatro piezas** en vez de como un PNG
 de una sola: el bloque de arriba, subido; negro macizo hasta el techo de verdad;

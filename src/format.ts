@@ -18,6 +18,17 @@ export const CANVAS_H = 1920;
  */
 const SRC_FADE_TOP_Y = 647;
 export const SRC_FADE_TOP_H = 803 - SRC_FADE_TOP_Y;
+
+/**
+ * Alto con el que se pinta ese degradado. Los 156 px del PSD se comen media
+ * cabecera antes de que el video se vea entero; comprimidos a 90 la entrada es
+ * mucho mas corta y esa diferencia se gana de imagen.
+ *
+ * Se comprime, no se recorta: pintandolo mas bajo, el desvanecido conserva su
+ * curva entera y solo pasa mas deprisa. Recortando filas se quedaria a medias
+ * y el corte se veria cruzando el ancho.
+ */
+export const FADE_TOP_DRAW_H = 90;
 export const SRC_FADE_BOTTOM_Y = 1355;
 export const SRC_FADE_BOTTOM_H = 1512 - SRC_FADE_BOTTOM_Y;
 /** Lo que hay por encima del degradado: marco, logo y filetes, en una pieza. */
@@ -28,11 +39,18 @@ export const SRC_HEADER_H = SRC_FADE_TOP_Y;
  * PSD. Por encima del logo el PSD deja 347 px de negro vacio que no pintan
  * nada, y subiendo el bloque ese aire se le regala al video.
  *
+ * El tope no es el borde del lienzo, es el del **feed de Instagram**, que
+ * recorta la pieza a 4:5 y se come las 285 primeras filas. El logo empieza en
+ * la 347, asi que de ahi al corte solo quedan 62 px de negro, y ese es todo el
+ * margen que hay para comerse: con 62 el logo quedaria pegado al filo del
+ * recorte, y con cualquier cosa por encima se le corta el halo. Estos 52 dejan
+ * 10 px, que es un pelo de aire y poco mas.
+ *
  * Es el unico numero de este archivo que no sale de medir: es una decision de
  * diseño, y esta suelto justo para poder moverla de un sitio. Con 0 la
  * composicion vuelve a ser la del PSD, clavada.
  */
-export const HEADER_LIFT = 30;
+export const HEADER_LIFT = 52;
 
 /**
  * El hueco del video. La capa `PLANTILLA` es negro opaco de arriba abajo salvo

@@ -9,6 +9,7 @@ import {
   TEXT_CENTER_Y,
   TEXT_MAX_W,
   TEXT_SAFE_TOP,
+  FADE_TOP_DRAW_H,
   HEADER_LIFT,
   SRC_FADE_BOTTOM_H,
   SRC_FADE_BOTTOM_Y,
@@ -506,7 +507,7 @@ function drawPlate(
     ctx.drawImage(
       overlay,
       0, SRC_HEADER_H, w, SRC_FADE_TOP_H,
-      0, layout.videoTop, w, SRC_FADE_TOP_H,
+      0, layout.videoTop, w, FADE_TOP_DRAW_H,
     );
 
     ctx.drawImage(
