@@ -180,6 +180,12 @@ de hueco y 665 de margen; al 250 % llega abajo del todo y no queda margen. La
 barra de **margen inferior** sube ese filo a mano si se quiere más negro, y como
 sus dos extremos salen del encuadre, lo elegido se readapta al cambiar el tamaño.
 
+**El degradado de abajo nunca es más alto que el negro al que funde.** Si el
+vídeo llega al borde del lienzo no hay margen ninguno, así que no se pinta: ahí
+el desvanecido no fundiría nada, sólo oscurecería imagen. Y como se va
+comprimiendo con el margen —97 px de margen dan 79 de desvanecido, 36 dan 30—,
+ampliar el vídeo hasta llenar el hueco no da ningún salto.
+
 Dos topes que no se ven pero mandan:
 
 - El borde de arriba del vídeo se puede subir pero **nunca bajar** del techo: por

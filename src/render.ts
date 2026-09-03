@@ -544,12 +544,21 @@ function drawPlate(
       0, layout.videoTop, w, FADE_TOP_DRAW_H,
     );
 
-    ctx.drawImage(
-      overlay,
-      0, SRC_FADE_BOTTOM_Y, w, SRC_FADE_BOTTOM_H,
-      0, layout.videoBottom - SRC_FADE_BOTTOM_H, w, SRC_FADE_BOTTOM_H,
-    );
-    ctx.fillRect(0, layout.videoBottom, w, layout.height - layout.videoBottom);
+    // El degradado de abajo nunca es mas alto que el negro al que funde. Si el
+    // video llega al borde del lienzo no hay negro ninguno, asi que no se pinta:
+    // ahi el desvanecido no fundiria nada, solo oscureceria imagen. Y como se
+    // va comprimiendo con el margen, ampliar el video hasta llenar el hueco no
+    // da ningun salto.
+    const barra = layout.height - layout.videoBottom;
+    const fadeH = Math.min(SRC_FADE_BOTTOM_H, barra);
+    if (fadeH > 0) {
+      ctx.drawImage(
+        overlay,
+        0, SRC_FADE_BOTTOM_Y, w, SRC_FADE_BOTTOM_H,
+        0, layout.videoBottom - fadeH, w, fadeH,
+      );
+    }
+    ctx.fillRect(0, layout.videoBottom, w, barra);
   }
   drawText(ctx, opts, layout);
 }
