@@ -149,16 +149,21 @@ export const CAP_RATIO = 0.70459;
 export const TEXT_MAX_W = 915;
 
 /**
- * Donde arranca la tinta del rotulo, siempre. El PSD deja 33 px entre el final
- * de los filetes (496) y la cabeza de las mayusculas de la primera linea (529).
+ * Aire entre el final de la cabecera y la cabeza de las mayusculas del rotulo.
+ * El PSD deja 33 px, de los filetes (496) a la primera linea (529); aqui van 28
+ * porque el rotulo se sube 5 px, y esos 5 se los lleva el video.
+ */
+export const TEXT_GAP_TOP = 33 - 5;
+
+/**
+ * Donde arranca la tinta del rotulo, siempre.
  *
  * El rotulo se ancla **por arriba**, no por su centro. Centrandolo, una sola
  * linea quedaba flotando en mitad de una cabecera pensada para dos y dejaba un
  * hueco muerto encima del video; anclado aqui, el bloque crece siempre hacia
- * abajo y es el degradado el que se aparta. El caso de dos lineas sale igual de
- * las dos formas, que es lo que reproduce el PSD.
+ * abajo y es el degradado el que se aparta.
  */
-export const TEXT_TOP = Math.round(ART_BOTTOM + 33);
+export const TEXT_TOP = Math.round(ART_BOTTOM + TEXT_GAP_TOP);
 
 /**
  * Aire entre el final del rotulo y el techo del hueco. Es lo que arrastra al

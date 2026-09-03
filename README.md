@@ -115,7 +115,7 @@ se adivinan mirando la imagen:
 | Interlineado | 62,74 px | `AutoLeading` 1,2 × cuerpo; baselines del PSD en 568 y 631 |
 | Tracking | −20 / 1000 eme | `Tracking` del `StyleRun` |
 | Ancho de párrafo | 915 px | `BoxBounds` 736 × escala 1,24321 |
-| Arranque del rótulo | 33 px bajo los filetes | tinta del PSD: filetes hasta 496, mayúsculas desde 529 |
+| Arranque del rótulo | 33 px bajo los filetes | tinta del PSD: filetes hasta 496, mayúsculas desde 529 (aquí se aprietan a 28) |
 | Aire bajo el rótulo | 16 px | de la última baseline (631) al techo del hueco (647) |
 | Color | `#ffffff` | `FillColor` del `StyleRun` |
 
@@ -157,7 +157,8 @@ El PSD deja la ventana entre 647 y 1511. Aquí los dos bordes se mueven, cada un
 siguiendo a lo que tiene al lado.
 
 **El techo lo pone el rótulo.** El bloque de texto va anclado **por arriba**, a
-33 px de los filetes, que es el aire que deja el PSD; de ahí crece hacia abajo, y
+28 px de la cabecera —el PSD deja 33 y aquí se aprietan 5, que se los lleva el
+vídeo—; de ahí crece hacia abajo, y
 el degradado se pone justo detrás. Con dos líneas cae exactamente donde el PSD lo
 puso. Con tres baja para dejarles sitio, en vez de encoger la letra — encoger la
 letra es lo que hace que un titular de tres líneas se lea peor que el vídeo que
