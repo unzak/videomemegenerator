@@ -8,9 +8,9 @@ rótulo donde va la capa `TEXTO`, y el vídeo asomando por el hueco de la ventan
 con sus bordes desvanecidos.
 
 Con una diferencia: **el hueco no está clavado por ningún lado**. Los dos
-degradados siguen a lo que tienen al lado —el de arriba baja cuando el rótulo
-necesita sitio, el de abajo va pegado al filo inferior del vídeo—, y el bloque
-de arriba va 52 px más alto que en el PSD. El logo y los filetes no se mueven.
+degradados siguen a lo que tienen al lado —el de arriba sube y baja con el
+rótulo, el de abajo va pegado al filo inferior del vídeo—, y el bloque de arriba
+va 52 px más alto que en el PSD. El logo y los filetes no se mueven.
 
 **Todo ocurre en el navegador.** No hay servidor y no hay nada que instalar: el
 montaje lo hace una build de ffmpeg compilada a WebAssembly, así que la página
@@ -22,11 +22,12 @@ publicada funciona sola.
    envuelvas en `*asteriscos*` sale en el color de resaltado, igual que en
    news-maker y memegenerator.
 2. Ajusta el **tamaño de letra** si quieres. Viene puesto el del PSD, 52,3 px.
-   Con una o dos líneas no pasa nada: el rótulo cae donde el PSD lo pone. En
-   cuanto pide más sitio, **el degradado de arriba baja para dejárselo** en vez
-   de encoger la letra, y el hueco del vídeo empieza más abajo. Solo se reduce
-   si llegase a dejar el hueco por debajo de su mínimo, cosa que con el cuerpo
-   topado en 76 px no pasa hasta las once líneas.
+   **El degradado de arriba va donde acabe el rótulo**: con dos líneas cae
+   exactamente donde el PSD lo pone, con tres baja para dejarles sitio en vez de
+   encoger la letra, y con una sola sube 63 px, porque no hay razón para
+   guardarle a una línea el hueco de dos. La letra solo se reduce si llegase a
+   dejar la ventana por debajo de su mínimo, cosa que con el cuerpo topado en
+   76 px no pasa hasta las once líneas.
 3. Suelta el **vídeo** en cualquier parte de la página —no hay que apuntar a
    ninguna caja— o elígelo con el botón.
 4. Si el primer fotograma sale en negro —que pasa a menudo—, recórrelo con la
@@ -114,7 +115,7 @@ se adivinan mirando la imagen:
 | Interlineado | 62,74 px | `AutoLeading` 1,2 × cuerpo; baselines del PSD en 568 y 631 |
 | Tracking | −20 / 1000 eme | `Tracking` del `StyleRun` |
 | Ancho de párrafo | 915 px | `BoxBounds` 736 × escala 1,24321 |
-| Centro del bloque | y = 580 | tinta del PSD de 529 a 631 |
+| Arranque del rótulo | 33 px bajo los filetes | tinta del PSD: filetes hasta 496, mayúsculas desde 529 |
 | Aire bajo el rótulo | 16 px | de la última baseline (631) al techo del hueco (647) |
 | Color | `#ffffff` | `FillColor` del `StyleRun` |
 
@@ -155,12 +156,20 @@ Cinco trampas que costaron encontrar, por si alguien vuelve por aquí:
 El PSD deja la ventana entre 647 y 1511. Aquí los dos bordes se mueven, cada uno
 siguiendo a lo que tiene al lado.
 
-**El techo lo pone el rótulo.** Por defecto está donde el PSD lo dejó, subido los
-30 px del bloque; ahí es donde el marco deja de ser opaco. Cuando el rótulo baja
-de donde cabía, el degradado de arriba baja con él, 16 px por debajo de la última
-baseline — el mismo aire que hay en el PSD. La alternativa era encoger la letra,
-y encoger la letra es lo que hace que un titular de tres líneas se lea peor que
-el vídeo que lleva debajo.
+**El techo lo pone el rótulo.** El bloque de texto va anclado **por arriba**, a
+33 px de los filetes, que es el aire que deja el PSD; de ahí crece hacia abajo, y
+el degradado se pone justo detrás. Con dos líneas cae exactamente donde el PSD lo
+puso. Con tres baja para dejarles sitio, en vez de encoger la letra — encoger la
+letra es lo que hace que un titular de tres líneas se lea peor que el vídeo que
+lleva debajo. Y con una sola línea **sube**, 63 px, porque centrando el bloque una
+línea se quedaba flotando en una cabecera pensada para dos y le robaba al vídeo un
+hueco que no usaba nadie.
+
+El aire de debajo son 18 px y no los 16 del PSD. La diferencia no es de diseño:
+los 16 del PSD van de la última baseline (631) a la ventana (647), pero esa 631 es
+la fila donde acaba la **tinta**, con sus bordes suavizados, y aquí el bloque se
+mide con las métricas de la fuente, que dejan la baseline un par de píxeles más
+arriba. Con 18, el caso de dos líneas abre la ventana clavada en su sitio.
 
 **El suelo lo pone el vídeo.** La escala base es el **encaje a lo ancho**: el
 hueco ocupa siempre los 1080 px del lienzo, y el tamaño solo decide cuánto baja.

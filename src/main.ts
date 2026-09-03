@@ -476,7 +476,7 @@ function draw(): void {
       (layout.videoBottom >= layout.height
         ? ", sin barra negra"
         : `, barra de ${layout.height - layout.videoBottom} px`) +
-      (layout.videoTop > VIDEO_Y ? ` · degradado bajado a ${layout.videoTop}` : "")
+      (layout.videoTop === VIDEO_Y ? "" : ` · degradado en ${layout.videoTop}`)
     : "";
   previewInfoEl.textContent = `${layout.width} × ${layout.height} px · ${rotulo}${hueco}`;
 }

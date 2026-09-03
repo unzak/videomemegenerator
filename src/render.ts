@@ -6,9 +6,8 @@ import {
   FAUX_BOLD_EM,
   FONT_SIZE_MIN,
   LINE_RATIO,
-  TEXT_CENTER_Y,
   TEXT_MAX_W,
-  TEXT_SAFE_TOP,
+  TEXT_TOP,
   FADE_TOP_DRAW_H,
   HEADER_LIFT,
   SRC_FADE_BOTTOM_H,
@@ -71,13 +70,12 @@ export interface RenderOptions {
 }
 
 /**
- * Donde arranca la tinta del rotulo. Va centrado en `TEXT_CENTER_Y`, que es lo
- * que reproduce el PSD, hasta que el bloque es tan alto que tocaria el logo:
- * de ahi para abajo se apoya en el techo y crece hacia el hueco, que le hace
- * sitio bajando el degradado.
+ * Donde acaba la tinta del rotulo. Como el bloque va anclado por arriba, esto
+ * depende solo de cuanto ocupe, y es lo que decide donde se pone el techo del
+ * hueco.
  */
-function blockTopFor(lineCount: number, size: number): number {
-  return Math.max(TEXT_SAFE_TOP, TEXT_CENTER_Y - blockHeight(lineCount, size) / 2);
+function blockBottomFor(lineCount: number, size: number): number {
+  return TEXT_TOP + blockHeight(lineCount, size);
 }
 
 /**
@@ -221,7 +219,7 @@ function compose(
   const lines = layoutLines(ctx, tokenize(parseSegments(opts.text)), size, TEXT_MAX_W);
   if (lines.length === 0) return { lines, fits: true };
   const widest = Math.max(0, ...lines.map((l) => lineWidth(ctx, l, size)));
-  const bottom = blockTopFor(lines.length, size) + blockHeight(lines.length, size);
+  const bottom = blockBottomFor(lines.length, size);
   return { lines, fits: bottom <= TEXT_MAX_BOTTOM && widest <= TEXT_MAX_W };
 }
 
@@ -269,14 +267,19 @@ function videoScale(size: { width: number; height: number }, zoom: number): numb
 }
 
 /**
- * El techo del hueco: el del PSD, salvo que el rotulo baje mas de lo que cabia
- * ahi. Depende solo del texto y del cuerpo, nunca del encuadre, asi que se
- * puede calcular antes de tocar el video.
+ * El techo del hueco: donde acaba el rotulo mas el aire del PSD. Sube y baja
+ * con el, asi que una sola linea abre la ventana mucho antes que tres y no deja
+ * la cabecera medio vacia. Con dos lineas cae justo en `VIDEO_Y`, que es donde
+ * lo dejo el PSD.
+ *
+ * Depende solo del texto y del cuerpo, nunca del encuadre, asi que se puede
+ * calcular antes de tocar el video.
  */
 function videoTopFor(lineCount: number, size: number): number {
+  // Sin rotulo no hay nada que seguir: se queda en el sitio de siempre, que es
+  // el que no sorprende.
   if (lineCount === 0) return VIDEO_Y;
-  const bottom = blockTopFor(lineCount, size) + blockHeight(lineCount, size);
-  return Math.max(VIDEO_Y, Math.round(bottom + TEXT_GAP_BOTTOM));
+  return Math.round(blockBottomFor(lineCount, size) + TEXT_GAP_BOTTOM);
 }
 
 /**
@@ -346,7 +349,7 @@ export function computeLayout(
 
   const lines = composed.lines;
   setFont(ctx, opts.font, size);
-  const blockTop = blockTopFor(lines.length, size);
+  const blockTop = TEXT_TOP;
   const videoTop = videoTopFor(lines.length, size);
 
   // El rectangulo se redondea aqui, y no al dibujar, porque este mismo va a
@@ -498,9 +501,13 @@ function drawPlate(
     const w = layout.width;
     ctx.fillStyle = "#000000";
 
-    // El bloque entero, subido. Lo que se sale por arriba es negro vacio del
-    // PSD, del que sobran 347 px por encima del logo.
-    ctx.drawImage(overlay, 0, 0, w, SRC_HEADER_H, 0, -HEADER_LIFT, w, SRC_HEADER_H);
+    // El bloque entero, subido, y cortado donde se abra el hueco: con una sola
+    // linea el techo queda por encima del sitio del PSD, y si se pintase el
+    // bloque completo su negro opaco taparia el degradado que va justo debajo.
+    // Se corta por filas del PNG que ahi son negro liso, asi que no se pierde
+    // nada del logo.
+    const headerH = Math.min(SRC_HEADER_H, layout.videoTop + HEADER_LIFT);
+    ctx.drawImage(overlay, 0, 0, w, headerH, 0, -HEADER_LIFT, w, headerH);
     if (layout.videoTop > VIDEO_Y) {
       ctx.fillRect(0, VIDEO_Y, w, layout.videoTop - VIDEO_Y);
     }

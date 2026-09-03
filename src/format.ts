@@ -130,25 +130,28 @@ export const CAP_RATIO = 0.70459;
 export const TEXT_MAX_W = 915;
 
 /**
- * Centro vertical del bloque de texto. En el PSD las mayusculas de la primera
- * linea empiezan en 529 y la baseline de la segunda cae en 631, asi que la
- * tinta se centra en 580. Anclar por el centro y no por la primera linea es lo
- * que mantiene el rotulo equilibrado tanto con una linea como con cuatro.
+ * Donde arranca la tinta del rotulo, siempre. El PSD deja 33 px entre el final
+ * de los filetes (496) y la cabeza de las mayusculas de la primera linea (529).
+ *
+ * El rotulo se ancla **por arriba**, no por su centro. Centrandolo, una sola
+ * linea quedaba flotando en mitad de una cabecera pensada para dos y dejaba un
+ * hueco muerto encima del video; anclado aqui, el bloque crece siempre hacia
+ * abajo y es el degradado el que se aparta. El caso de dos lineas sale igual de
+ * las dos formas, que es lo que reproduce el PSD.
  */
-export const TEXT_CENTER_Y = 580 - HEADER_LIFT;
+export const TEXT_TOP = SRC_ART_BOTTOM + 33 - HEADER_LIFT;
 
 /**
- * Techo del rotulo: 16 px de respiro bajo el logo. De aqui no sube, porque por
- * encima se montaria sobre la cara.
+ * Aire entre el final del rotulo y el techo del hueco. Es lo que arrastra al
+ * degradado de arriba cuando el rotulo crece o mengua.
+ *
+ * En el PSD hay 16 px de la ultima baseline (631) a la ventana (647), pero esa
+ * 631 es la fila donde acaba la **tinta**, con sus bordes suavizados, y aqui el
+ * bloque se mide con las metricas de la fuente, que dejan la baseline un par de
+ * pixeles mas arriba. Estos 18 son aquellos 16 mas esa diferencia: con ellos el
+ * caso de dos lineas abre la ventana exactamente en `VIDEO_Y`, como el PSD.
  */
-export const TEXT_SAFE_TOP = SRC_ART_BOTTOM + 17 - HEADER_LIFT;
-
-/**
- * Aire entre la ultima baseline del rotulo y el techo del hueco. Sale del PSD:
- * la segunda linea cae en 631 y la ventana se abre en 647. Es lo que empuja el
- * degradado de arriba cuando el rotulo crece.
- */
-export const TEXT_GAP_BOTTOM = SRC_FADE_TOP_Y - 631;
+export const TEXT_GAP_BOTTOM = 18;
 
 /**
  * Hasta donde puede bajar la tinta del rotulo. No es una medida del PSD: es lo
