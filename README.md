@@ -187,18 +187,28 @@ Dos topes que no se ven pero mandan:
 - Un vídeo que cabe entero no se puede subir, porque su filo de abajo es el que
   manda dónde va el margen. Uno más largo que el hueco sí se recorre arrastrando.
 
-**Y el bloque de arriba va 52 px más alto que en el PSD.** Por encima del logo el
+**Y el bloque de arriba va 65 px más alto que en el PSD, con el logo al 80 %.** Por encima del logo el
 PSD deja 347 px de negro vacío que no pintan nada, y subiendo el bloque ese aire
 se le regala al vídeo. Es el único número del `format.ts` que no sale de medir,
 así que está suelto en `HEADER_LIFT` para poder moverlo de un sitio: con 0 la
 composición vuelve a ser la del PSD, clavada.
 
 El tope de ese número no es el borde del lienzo, es el del **feed de Instagram**,
-que recorta la pieza a 4:5 y se come las 285 primeras filas. El logo empieza en
-la 347, así que de ahí al corte solo quedan **62 px de negro, y ese es todo el
-margen que hay para comerse**: con 62 el logo quedaría pegado al filo del recorte
-y con cualquier cosa por encima se le corta el halo. Con estos 52, la primera
-fila con tinta del logo cae en la 299, catorce por debajo del corte.
+que recorta la pieza a 4:5 y se come las 285 primeras filas. Con 65, y con el
+logo ya reducido, la cola del halo llega justo a esa 285; la tinta sólida del
+logo empieza en la 292, siete por debajo del corte. Ahí ya no queda margen.
+
+**El logo se dibuja al 80 %, y los filetes no.** Se puede porque en el PNG no se
+solapan ni por un píxel —la tinta del logo ocupa x 459…617, los filetes van de 74
+a 458 y de 618 a 1002—, así que el marco se repinta con un relleno negro (que es
+lo que hay ahí en el PSD) y las dos piezas se pegan encima por separado. Escalar
+la banda entera habría acortado también los filetes, que es otra cosa. Entre el
+final de cada filete y el logo quedan 16 px, que el halo cubre de sobra.
+
+Reducirlo devuelve 14 px por arriba, porque al escalar desde el centro el borde
+superior baja;  sube la cabecera esos mismos 14 para que el logo
+arranque donde arrancaba y la reducción entera se convierta en sitio para el
+vídeo.
 
 **El degradado de arriba se pinta comprimido**, 90 px en vez de los 156 del PSD.
 Los 156 se comían media cabecera antes de que el vídeo se viera entero; con 90 la

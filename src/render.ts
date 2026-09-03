@@ -8,12 +8,21 @@ import {
   LINE_RATIO,
   TEXT_MAX_W,
   TEXT_TOP,
+  ART_OFFSET,
   FADE_TOP_DRAW_H,
-  HEADER_LIFT,
+  LOGO_SCALE,
   SRC_FADE_BOTTOM_H,
   SRC_FADE_BOTTOM_Y,
   SRC_FADE_TOP_H,
-  SRC_HEADER_H,
+  SRC_FADE_TOP_Y,
+  SRC_LOGO_CX,
+  SRC_LOGO_CY,
+  SRC_LOGO_H,
+  SRC_LOGO_W,
+  SRC_RULES_H,
+  SRC_RULES_LEFT_W,
+  SRC_RULES_RIGHT_X,
+  SRC_RULES_Y,
   TEXT_GAP_BOTTOM,
   TEXT_MAX_BOTTOM,
   TRACKING_EM,
@@ -501,19 +510,37 @@ function drawPlate(
     const w = layout.width;
     ctx.fillStyle = "#000000";
 
-    // El bloque entero, subido, y cortado donde se abra el hueco: con una sola
-    // linea el techo queda por encima del sitio del PSD, y si se pintase el
-    // bloque completo su negro opaco taparia el degradado que va justo debajo.
-    // Se corta por filas del PNG que ahi son negro liso, asi que no se pierde
-    // nada del logo.
-    const headerH = Math.min(SRC_HEADER_H, layout.videoTop + HEADER_LIFT);
-    ctx.drawImage(overlay, 0, 0, w, headerH, 0, -HEADER_LIFT, w, headerH);
-    if (layout.videoTop > VIDEO_Y) {
-      ctx.fillRect(0, VIDEO_Y, w, layout.videoTop - VIDEO_Y);
-    }
+    // El marco de arriba: negro liso hasta donde se abra el hueco. En el PSD
+    // toda esa zona es negro opaco salvo el logo y los filetes, asi que
+    // repintarla y volver a poner esas dos piezas encima la reproduce igual, y
+    // de paso permite tratarlas por separado.
+    ctx.fillRect(0, 0, w, layout.videoTop);
+
+    // Los filetes, en dos trozos, que es como estan: acaban justo donde empieza
+    // la caja del logo y vuelven a empezar justo donde acaba.
     ctx.drawImage(
       overlay,
-      0, SRC_HEADER_H, w, SRC_FADE_TOP_H,
+      0, SRC_RULES_Y, SRC_RULES_LEFT_W, SRC_RULES_H,
+      0, SRC_RULES_Y - ART_OFFSET, SRC_RULES_LEFT_W, SRC_RULES_H,
+    );
+    ctx.drawImage(
+      overlay,
+      SRC_RULES_RIGHT_X, SRC_RULES_Y, w - SRC_RULES_RIGHT_X, SRC_RULES_H,
+      SRC_RULES_RIGHT_X, SRC_RULES_Y - ART_OFFSET, w - SRC_RULES_RIGHT_X, SRC_RULES_H,
+    );
+
+    // Y el logo, reducido desde su centro para que no se mueva de sitio.
+    const logoW = SRC_LOGO_W * LOGO_SCALE;
+    const logoH = SRC_LOGO_H * LOGO_SCALE;
+    ctx.drawImage(
+      overlay,
+      SRC_LOGO_CX - SRC_LOGO_W / 2, SRC_LOGO_CY - SRC_LOGO_H / 2, SRC_LOGO_W, SRC_LOGO_H,
+      SRC_LOGO_CX - logoW / 2, SRC_LOGO_CY - logoH / 2 - ART_OFFSET, logoW, logoH,
+    );
+
+    ctx.drawImage(
+      overlay,
+      0, SRC_FADE_TOP_Y, w, SRC_FADE_TOP_H,
       0, layout.videoTop, w, FADE_TOP_DRAW_H,
     );
 

@@ -16,7 +16,7 @@ export const CANVAS_H = 1920;
  * Son coordenadas **del archivo**, no del lienzo: las piezas se recortan de
  * aqui y se pegan donde toque, que ya no es donde estaban.
  */
-const SRC_FADE_TOP_Y = 647;
+export const SRC_FADE_TOP_Y = 647;
 export const SRC_FADE_TOP_H = 803 - SRC_FADE_TOP_Y;
 
 /**
@@ -31,8 +31,32 @@ export const SRC_FADE_TOP_H = 803 - SRC_FADE_TOP_Y;
 export const FADE_TOP_DRAW_H = 90;
 export const SRC_FADE_BOTTOM_Y = 1355;
 export const SRC_FADE_BOTTOM_H = 1512 - SRC_FADE_BOTTOM_Y;
-/** Lo que hay por encima del degradado: marco, logo y filetes, en una pieza. */
-export const SRC_HEADER_H = SRC_FADE_TOP_Y;
+
+/**
+ * Caja del logo dentro del PNG, y banda de los filetes. Medidas sobre la propia
+ * capa: la tinta del logo ocupa x 459..617, y los filetes van de 74 a 458 y de
+ * 618 a 1002. **No se solapan ni por un pixel**, y eso es lo que permite
+ * dibujarlos como piezas separadas —y por tanto reducir el logo sin acortar los
+ * filetes— sin tener que retocar el PNG.
+ *
+ * Todo lo demas de esa zona es negro opaco, asi que el marco se repinta con un
+ * relleno y estas dos piezas encima.
+ */
+const SRC_LOGO_X = 459;
+const SRC_LOGO_Y = 349;
+export const SRC_LOGO_W = 159;
+export const SRC_LOGO_H = 145;
+export const SRC_LOGO_CX = SRC_LOGO_X + SRC_LOGO_W / 2;
+export const SRC_LOGO_CY = SRC_LOGO_Y + SRC_LOGO_H / 2;
+
+export const SRC_RULES_Y = 419;
+export const SRC_RULES_H = 41;
+/** Los filetes acaban justo donde empieza la caja del logo, y al reves. */
+export const SRC_RULES_LEFT_W = SRC_LOGO_X;
+export const SRC_RULES_RIGHT_X = SRC_LOGO_X + SRC_LOGO_W;
+
+/** Lo que se reduce el logo respecto al PSD. */
+export const LOGO_SCALE = 0.8;
 
 /**
  * Lo que sube todo el bloque de arriba —logo, filetes y rotulo— respecto al
@@ -40,35 +64,30 @@ export const SRC_HEADER_H = SRC_FADE_TOP_Y;
  * nada, y subiendo el bloque ese aire se le regala al video.
  *
  * El tope no es el borde del lienzo, es el del **feed de Instagram**, que
- * recorta la pieza a 4:5 y se come las 285 primeras filas. El logo empieza en
- * la 347, asi que de ahi al corte solo quedan 62 px de negro, y ese es todo el
- * margen que hay para comerse: con 62 el logo quedaria pegado al filo del
- * recorte, y con cualquier cosa por encima se le corta el halo. Estos 52 dejan
- * 10 px, que es un pelo de aire y poco mas.
+ * recorta la pieza a 4:5 y se come las 285 primeras filas. Con estos 65, y con
+ * el logo ya reducido, la primera fila con tinta cae en la 284: el halo roza el
+ * filo del recorte. Comprobado sobre publicaciones reales, ahi todavia hay
+ * aire; subiendo mas, ya no.
  *
  * Es el unico numero de este archivo que no sale de medir: es una decision de
  * diseño, y esta suelto justo para poder moverla de un sitio. Con 0 la
  * composicion vuelve a ser la del PSD, clavada.
  */
-export const HEADER_LIFT = 52;
+export const HEADER_LIFT = 65;
 
 /**
- * El hueco del video. La capa `PLANTILLA` es negro opaco de arriba abajo salvo
- * una ventana con los bordes desvanecidos: el alfa baja de 255 a 0 entre las
- * filas 647 y 802, se queda a 0 hasta la 1355, y vuelve a 255 en la 1512.
+ * Lo que suben ademas el logo y los filetes, por encima de `HEADER_LIFT`.
  *
- * Aqui ninguno de los dos bordes esta clavado donde lo dejo el PSD: **los dos
- * degradados siguen a lo que tienen al lado**. El de arriba baja cuando el
- * rotulo necesita mas sitio, y el de abajo va pegado al filo inferior del
- * video. Lo que no se mueve es el logo ni los filetes, que se quedan donde el
- * PSD los puso.
- *
- * En el PSD el techo esta en 647, la ultima fila opaca. Aqui todo el bloque de
- * arriba va `HEADER_LIFT` px mas alto, asi que el techo por defecto sube con
- * el. De ese techo el degradado no sube nunca; con una o dos lineas de rotulo,
- * que es el caso normal, el hueco empieza justo ahi.
+ * Sale de reducir el logo: al escalarlo desde su centro, su borde de arriba
+ * baja 14 px. Subiendo la cabecera esos mismos 14, el logo vuelve a arrancar
+ * exactamente donde arrancaba —a 12 px del recorte 4:5 del feed, que es todo el
+ * aire que hay— y la reduccion entera se convierte en sitio para el video en
+ * vez de en mas negro por arriba.
  */
-export const VIDEO_Y = SRC_FADE_TOP_Y - HEADER_LIFT;
+export const ART_LIFT = Math.round((SRC_LOGO_H * (1 - LOGO_SCALE)) / 2);
+
+/** Lo que sube la cabecera en total. Es con lo que se dibuja. */
+export const ART_OFFSET = HEADER_LIFT + ART_LIFT;
 
 /**
  * Lo que nunca se estrecha el hueco, pase lo que pase con el rotulo o con la
@@ -77,11 +96,11 @@ export const VIDEO_Y = SRC_FADE_TOP_Y - HEADER_LIFT;
 export const VIDEO_MIN_H = 413;
 
 /**
- * Donde acaba la tinta del logo y los filetes dentro de `PLANTILLA`, en filas
- * del archivo. De aqui sale `TEXT_SAFE_TOP`: 17 px mas abajo, y luego los dos
- * suben lo mismo que el bloque.
+ * Donde acaba la tinta de la cabecera **en el lienzo**, con el logo ya reducido
+ * y todo subido. Manda el logo, que baja mas que los filetes.
  */
-export const SRC_ART_BOTTOM = 496;
+export const ART_BOTTOM =
+  Math.max(SRC_LOGO_CY + (SRC_LOGO_H * LOGO_SCALE) / 2, SRC_RULES_Y + SRC_RULES_H) - ART_OFFSET;
 
 /**
  * Capa `TEXTO`: SFProDisplay-Bold, FontSize 42 x la escala 1.24484 del layer.
@@ -139,7 +158,7 @@ export const TEXT_MAX_W = 915;
  * abajo y es el degradado el que se aparta. El caso de dos lineas sale igual de
  * las dos formas, que es lo que reproduce el PSD.
  */
-export const TEXT_TOP = SRC_ART_BOTTOM + 33 - HEADER_LIFT;
+export const TEXT_TOP = Math.round(ART_BOTTOM + 33);
 
 /**
  * Aire entre el final del rotulo y el techo del hueco. Es lo que arrastra al
@@ -152,6 +171,19 @@ export const TEXT_TOP = SRC_ART_BOTTOM + 33 - HEADER_LIFT;
  * caso de dos lineas abre la ventana exactamente en `VIDEO_Y`, como el PSD.
  */
 export const TEXT_GAP_BOTTOM = 18;
+
+/**
+ * Techo de referencia del hueco: donde lo abre el rotulo de dos lineas al
+ * cuerpo del PSD, que es el caso de la plantilla. Se usa cuando no hay rotulo
+ * ninguno, que es cuando no hay nada a lo que seguir.
+ *
+ * Sale calculado y no medido a proposito: asi cualquier cosa que mueva la
+ * cabecera —reducir el logo, subirla— lo arrastra sin tener que reajustarlo a
+ * mano.
+ */
+export const VIDEO_Y = Math.round(
+  TEXT_TOP + FONT_SIZE * LINE_RATIO + FONT_SIZE * CAP_RATIO + TEXT_GAP_BOTTOM,
+);
 
 /**
  * Hasta donde puede bajar la tinta del rotulo. No es una medida del PSD: es lo
