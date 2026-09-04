@@ -321,42 +321,96 @@ input[type="range"]:disabled {
   text-align: right;
 }
 
-/* Los dos interruptores del video: voltear y recortar. */
-.toggles {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-toggle {
-  flex: 1;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 9px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
+/*
+ * El play de la reproduccion y las tijeras del recorte. Van los dos al mismo
+ * tono y al mismo ancho, que es lo que deja las dos pistas alineadas.
+ */
+.icon-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
   color: var(--muted);
+  cursor: pointer;
 }
 
-.btn-toggle:hover {
-  border-color: var(--accent);
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-btn:hover:not(:disabled):not(.is-static) {
   color: var(--text);
 }
 
-.btn-toggle[aria-pressed="true"] {
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Las tijeras solo rotulan la barra: no son un boton. */
+.icon-btn.is-static {
+  cursor: default;
+}
+
+.icon-btn .i-pause,
+.icon-btn[aria-pressed="true"] .i-play {
+  display: none;
+}
+
+.icon-btn[aria-pressed="true"] .i-pause {
+  display: inline;
+}
+
+.icon-btn[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+/*
+ * El volteo va encima de la previa, abajo a la derecha: es lo que le pasa a la
+ * imagen, asi que se toca mirandola y no desde el panel de al lado.
+ */
+.stage-btn {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text);
+  background: rgb(18 16 15 / 62%);
+  border: 1px solid rgb(255 255 255 / 18%);
+  backdrop-filter: blur(4px);
+}
+
+.stage-btn svg {
+  width: 21px;
+  height: 21px;
+}
+
+.stage-btn:hover:not(:disabled) {
+  background: rgb(18 16 15 / 82%);
+  border-color: var(--accent);
+}
+
+.stage-btn[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
 
-.btn-toggle:disabled {
-  opacity: 0.4;
-  cursor: default;
-  border-color: var(--line);
-  color: var(--muted);
-  background: var(--panel-2);
+.stage-btn:disabled {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /*
@@ -369,6 +423,10 @@ input[type="range"]:disabled {
   align-items: center;
   gap: 12px;
   margin: 0 0 4px;
+}
+
+.trim[hidden] {
+  display: none;
 }
 
 .trim-track {
@@ -414,6 +472,7 @@ input[type="range"]:disabled {
 }
 
 .stage {
+  position: relative;
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: var(--radius);

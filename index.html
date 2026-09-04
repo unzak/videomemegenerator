@@ -42,15 +42,6 @@
           <p class="muted small" id="file-name">Ningún archivo seleccionado</p>
         </div>
 
-        <div class="field toggles">
-          <button type="button" id="flip" class="btn-toggle" aria-pressed="false">
-            Voltear
-          </button>
-          <button type="button" id="trim-toggle" class="btn-toggle" aria-pressed="false">
-            Recortar
-          </button>
-        </div>
-
         <div class="field">
           <label for="zoom">
             Tamaño del vídeo
@@ -92,15 +83,39 @@
         <h2>Vista previa</h2>
         <div class="stage">
           <canvas id="preview"></canvas>
+          <button type="button" id="flip" class="stage-btn" aria-pressed="false"
+                  title="Voltear en horizontal" aria-label="Voltear en horizontal">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v18" stroke-dasharray="3 3" />
+              <path d="M8.5 8 4.5 12l4 4" />
+              <path d="M15.5 8l4 4-4 4" />
+            </svg>
+          </button>
         </div>
 
         <div class="scrub">
+          <button type="button" id="play" class="icon-btn" aria-pressed="false" disabled
+                  title="Reproducir la previa" aria-label="Reproducir la previa">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+              <path class="i-play" d="M8 5v14l11-7z" />
+              <path class="i-pause" d="M7 5h3.4v14H7zm6.6 0H17v14h-3.4z" />
+            </svg>
+          </button>
           <input type="range" id="seek" min="0" max="1" step="0.001" value="0" disabled
                  aria-label="Fotograma de la previa" />
           <span class="muted small" id="seek-value">0:00 / 0:00</span>
         </div>
 
         <div class="trim" id="trim" hidden>
+          <span class="icon-btn is-static" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="6" cy="18" r="2.5" />
+              <circle cx="6" cy="6" r="2.5" />
+              <path d="M8.2 7.7 19.5 18.5M19.5 5.5 8.2 16.3" />
+            </svg>
+          </span>
           <div class="trim-track" id="trim-track">
             <div class="trim-span" id="trim-span"></div>
             <div class="trim-handle" id="trim-in" tabindex="0" role="slider"

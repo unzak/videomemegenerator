@@ -31,17 +31,19 @@ publicada funciona sola.
 3. Suelta el **vídeo** en cualquier parte de la página —no hay que apuntar a
    ninguna caja— o elígelo con el botón.
 4. Si el primer fotograma sale en negro —que pasa a menudo—, recórrelo con la
-   **barra que hay bajo la previa**, que va como la de un reproductor y marca el
-   tiempo. Solo cambia lo que se ve mientras encuadras: al vídeo no le recorta
+   **barra que hay bajo la previa**. El **play** de su izquierda reproduce el
+   montaje entero, con sonido, para verlo en movimiento. Recorrerla no le
+   recorta nada al vídeo: solo cambia lo que se ve mientras encuadras.
+5. La **barra de las tijeras**, justo debajo, es el recorte. Sus dos extremos se
+   arrastran, o se afinan con las flechas del teclado —una décima por pulsación,
+   un segundo con Mayúsculas— y al moverlos la previa salta a ese punto para ver
+   por dónde estás cortando. La barra de reproducción **se queda encerrada entre
+   los dos**, así que lo que recorres, y lo que reproduce el play, es exactamente
+   lo que se va a exportar. Sin tocarlos abarca el vídeo entero y no se recorta
    nada.
-5. **Voltear** lo espeja en horizontal. No mueve el encuadre: solo da la vuelta
-   a la imagen dentro de él.
-6. **Recortar** saca dos extremos bajo la barra de reproducción. Se arrastran, o
-   se afinan con las flechas del teclado —una décima por pulsación, un segundo
-   con Mayúsculas— y al moverlos la previa salta a ese punto, para ver por dónde
-   estás cortando. Mientras esté puesto, la barra de reproducción **se queda
-   encerrada entre los dos**, así que lo que recorres es exactamente lo que se
-   va a exportar.
+6. El icono de las flechas, **abajo a la derecha de la previa**, voltea el vídeo
+   en horizontal. No mueve el encuadre: solo da la vuelta a la imagen dentro de
+   él.
 7. Ajusta el **tamaño del vídeo** con la barra. **El margen negro de abajo se
    adapta solo**: al ampliar, el vídeo baja y el margen se encoge, hasta llegar
    al borde del lienzo y desaparecer; al reducir, vuelve a crecer. Arrastrando
@@ -140,7 +142,7 @@ Comparado píxel a píxel con la referencia exportada del PSD, el marco entero
 solo quedan los bordes de las letras, que es donde el rasterizador de Chrome no
 puede coincidir con el de Photoshop.
 
-Cinco trampas que costaron encontrar, por si alguien vuelve por aquí:
+Seis trampas que costaron encontrar, por si alguien vuelve por aquí:
 
 - **El vídeo tiene que llegar por debajo de los degradados, no hasta el borde de
   la ventana limpia.** El alfa de la plantilla no cae a cero de golpe: baja de
@@ -159,6 +161,13 @@ Cinco trampas que costaron encontrar, por si alguien vuelve por aquí:
 - El alfa de la plantilla es **función pura de la fila**: no varía a lo ancho.
   Eso es lo que permite recortar los degradados y pegarlos en otro sitio sin que
   se note ninguna costura.
+- **Los `pointerup` hay que escucharlos en `window`, no en el lienzo.**
+  Soltando el ratón fuera de la previa —que pasa constantemente al arrastrar
+  hasta el borde— el lienzo no se entera, y ese puntero se queda anotado para
+  siempre: a partir de ahí el mapa de punteros nunca vuelve a estar vacío,
+  cualquier pulsación cuenta como segundo dedo y todo gesto se toma por un
+  pellizco. El síntoma es que el vídeo deja de poder moverse y encima el zoom se
+  mueve solo, y no se arregla hasta recargar.
 - **El ajuste del cuerpo hay que buscarlo, no calcularlo por proporción.** Al
   subir el tamaño llega un momento en que una línea deja de entrar en la caja y
   el rótulo pasa de dos líneas a tres; encoger entonces por la altura que ocupan

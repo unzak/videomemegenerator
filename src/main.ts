@@ -42,7 +42,7 @@ const fileNameEl = need<HTMLParagraphElement>("file-name");
 const seekEl = need<HTMLInputElement>("seek");
 const seekValueEl = need<HTMLSpanElement>("seek-value");
 const flipEl = need<HTMLButtonElement>("flip");
-const trimToggleEl = need<HTMLButtonElement>("trim-toggle");
+const playEl = need<HTMLButtonElement>("play");
 const trimEl = need<HTMLDivElement>("trim");
 const trimTrackEl = need<HTMLDivElement>("trim-track");
 const trimSpanEl = need<HTMLDivElement>("trim-span");
@@ -89,8 +89,11 @@ interface State {
   transform: VideoTransform;
   /** Espejado horizontal. No toca el encuadre, solo da la vuelta a la imagen. */
   flip: boolean;
-  /** Tramo que se exporta. `on` en false = el video entero. */
-  trim: { on: boolean; start: number; end: number };
+  /**
+   * Tramo que se exporta. Arranca abarcando el video entero, asi que mientras
+   * no se toquen los extremos no hay recorte que hacer.
+   */
+  trim: { start: number; end: number };
   overlay: HTMLImageElement | null;
   /** URL del MP4 ya montado, para el boton de descarga. */
   result: string | null;
@@ -103,7 +106,7 @@ const state: State = {
   file: null,
   transform: { zoom: 1, offsetX: 0, offsetY: 0 },
   flip: false,
-  trim: { on: false, start: 0, end: 0 },
+  trim: { start: 0, end: 0 },
   overlay: null,
   result: null,
   busy: false,
@@ -238,9 +241,11 @@ async function loadFile(file: File): Promise<void> {
     computeLayout(previewCtx, options()).videoTop,
   );
   state.flip = false;
-  state.trim = { on: false, start: 0, end: sourceEl.duration || 0 };
+  state.trim = { start: 0, end: sourceEl.duration || 0 };
+  pausePreview();
   showFlip();
   showTrim();
+  showPlay();
   seekEl.disabled = false;
   seekEl.value = "0";
   showTime();
@@ -309,6 +314,7 @@ window.addEventListener("drop", (e) => {
 // solo recorre lo que de verdad se va a exportar.
 seekEl.addEventListener("input", () => {
   if (!state.hasVideo) return;
+  pausePreview();
   sourceEl.currentTime = Number(seekEl.value);
 });
 sourceEl.addEventListener("seeked", () => {
@@ -322,6 +328,77 @@ function showFlip(): void {
   flipEl.setAttribute("aria-pressed", String(state.flip));
   flipEl.disabled = !state.hasVideo;
 }
+
+// --- Reproducir la previa ---------------------------------------------------
+
+/**
+ * La previa se puede reproducir para ver el montaje en movimiento. Solo recorre
+ * el tramo elegido: al llegar al extremo de salida se para, y volviendo a darle
+ * arranca otra vez desde el de entrada.
+ */
+let playing = false;
+let frameLoop = 0;
+
+function showPlay(): void {
+  playEl.setAttribute("aria-pressed", String(playing));
+  playEl.disabled = !state.hasVideo;
+  playEl.title = playing ? "Pausar la previa" : "Reproducir la previa";
+}
+
+function pausePreview(): void {
+  if (!playing) return;
+  playing = false;
+  cancelAnimationFrame(frameLoop);
+  sourceEl.pause();
+  showPlay();
+}
+
+/** Lleva la barra y el reloj a donde vaya la reproduccion. */
+function followTime(): void {
+  seekEl.value = String(sourceEl.currentTime);
+  showTime();
+}
+
+function tick(): void {
+  if (!playing) return;
+  if (sourceEl.currentTime >= state.trim.end - 0.01) {
+    pausePreview();
+    return;
+  }
+  followTime();
+  draw();
+  frameLoop = requestAnimationFrame(tick);
+}
+
+// El lienzo se repinta con `requestAnimationFrame`, que es lo suyo para algo
+// que va a la cadencia de la pantalla. Pero el navegador lo para en cuanto la
+// pestaña deja de verse, y entonces la barra se quedaba clavada aunque el video
+// siguiera corriendo. `timeupdate` llega igual con la pestaña oculta, asi que
+// al volver los numeros estan donde tienen que estar.
+sourceEl.addEventListener("timeupdate", () => {
+  if (!playing) return;
+  if (sourceEl.currentTime >= state.trim.end - 0.01) pausePreview();
+  else followTime();
+});
+
+playEl.addEventListener("click", () => {
+  if (!state.hasVideo) return;
+  if (playing) {
+    pausePreview();
+    return;
+  }
+  // Al final del tramo, volver a darle es empezar de nuevo.
+  if (sourceEl.currentTime >= state.trim.end - 0.05) sourceEl.currentTime = state.trim.start;
+  // Con sonido: el clic ya es el gesto que piden los navegadores, y un meme sin
+  // audio esta a medias.
+  sourceEl.muted = false;
+  playing = true;
+  showPlay();
+  void sourceEl.play().catch(() => pausePreview());
+  frameLoop = requestAnimationFrame(tick);
+});
+
+sourceEl.addEventListener("ended", pausePreview);
 
 flipEl.addEventListener("click", () => {
   if (!state.hasVideo) return;
@@ -347,24 +424,30 @@ function clockTenths(seconds: number): string {
   return `${m}:${(total - m * 60).toFixed(1).padStart(4, "0")}`;
 }
 
-/** El tramo que se va a exportar, o null si se exporta entero. */
+/**
+ * El tramo que se va a exportar, o null si se exporta entero. Con los extremos
+ * sin tocar no se le pasa recorte ninguno a ffmpeg: cortar en 0 y en la
+ * duracion exacta no quita nada y solo puede desalinear el audio.
+ */
 function trimRange(): { start: number; end: number } | null {
-  return state.trim.on ? { start: state.trim.start, end: state.trim.end } : null;
+  const duration = sourceEl.duration || 0;
+  const { start, end } = state.trim;
+  if (duration <= 0) return null;
+  if (start <= 0.001 && end >= duration - 0.001) return null;
+  return { start, end };
 }
 
 function showTrim(): void {
-  const { on, start, end } = state.trim;
+  const { start, end } = state.trim;
   const duration = sourceEl.duration || 0;
-  trimToggleEl.setAttribute("aria-pressed", String(on));
-  trimToggleEl.disabled = !state.hasVideo;
-  trimEl.hidden = !on || !state.hasVideo;
+  trimEl.hidden = !state.hasVideo;
 
   // La barra de reproduccion se encierra entre los dos extremos: asi lo que se
   // recorre es exactamente lo que va a salir.
-  seekEl.min = String(on ? start : 0);
-  seekEl.max = String(on ? end : duration || 1);
+  seekEl.min = String(start);
+  seekEl.max = String(end || duration || 1);
 
-  if (!on || duration <= 0) return;
+  if (duration <= 0) return;
   const pct = (t: number) => `${(t / duration) * 100}%`;
   trimSpanEl.style.left = pct(start);
   trimSpanEl.style.width = `${((end - start) / duration) * 100}%`;
@@ -379,17 +462,6 @@ function seekTo(time: number): void {
   sourceEl.currentTime = time;
   seekEl.value = String(time);
 }
-
-trimToggleEl.addEventListener("click", () => {
-  if (!state.hasVideo) return;
-  state.trim.on = !state.trim.on;
-  if (state.trim.on) {
-    state.trim.start = 0;
-    state.trim.end = sourceEl.duration || 0;
-  }
-  showTrim();
-  showFlip();
-});
 
 /**
  * Los dos extremos. Se arrastran sobre la pista, y cada uno empuja al otro solo
@@ -422,7 +494,8 @@ for (const type of ["pointerup", "pointercancel"] as const) {
 
 for (const [handle, which] of [[trimInEl, "start"], [trimOutEl, "end"]] as const) {
   handle.addEventListener("pointerdown", (e) => {
-    if (!state.hasVideo || !state.trim.on) return;
+    if (!state.hasVideo) return;
+    pausePreview();
     e.preventDefault();
     dragging = which;
     dragTo(e.clientX);
@@ -431,7 +504,7 @@ for (const [handle, which] of [[trimInEl, "start"], [trimOutEl, "end"]] as const
   // Con el teclado, un paso por pulsacion: es la unica forma de afinarlo al
   // fotograma sin pelearse con el raton.
   handle.addEventListener("keydown", (e) => {
-    if (!state.trim.on) return;
+    if (!state.hasVideo) return;
     const step = e.shiftKey ? 1 : 0.04;
     const dir = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
     if (dir === 0) return;
@@ -586,8 +659,16 @@ previewEl.addEventListener("pointermove", (e) => {
   }
 });
 
+/**
+ * En `window` y no en el lienzo. Soltando el raton fuera de la previa —que pasa
+ * constantemente al arrastrar hasta el borde— el lienzo no se entera, y ese
+ * puntero se queda anotado **para siempre**: a partir de ahi `pointers` nunca
+ * vuelve a estar vacio, cualquier pulsacion cuenta como segundo dedo y todo
+ * gesto se toma por un pellizco. El sintoma es que el video deja de poder
+ * moverse y encima el zoom se mueve solo, y no se arregla hasta recargar.
+ */
 for (const type of ["pointerup", "pointercancel"] as const) {
-  previewEl.addEventListener(type, (e) => {
+  window.addEventListener(type, (e) => {
     pointers.delete(e.pointerId);
     pinch = null;
     if (pointers.size === 1) {
@@ -826,9 +907,10 @@ sizeEl.value = String(FONT_SIZE);
 previewEl.width = CANVAS_W;
 textColorEl.value = COLOR_TEXT;
 highlightEl.value = COLOR_HIGHLIGHT;
-// Voltear y recortar no tienen sentido sin video: apagados hasta que lo haya.
+// Sin video no hay nada que voltear, recorrer ni recortar.
 showFlip();
 showTrim();
+showPlay();
 
 void (async () => {
   const [overlay] = await Promise.all([loadImage(overlayUrl), ensureFont()]);
