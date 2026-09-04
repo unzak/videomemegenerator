@@ -34,22 +34,30 @@ publicada funciona sola.
    **barra que hay bajo la previa**, que va como la de un reproductor y marca el
    tiempo. Solo cambia lo que se ve mientras encuadras: al vídeo no le recorta
    nada.
-5. Ajusta el **tamaño del vídeo** con la barra. **El margen negro de abajo se
+5. **Voltear** lo espeja en horizontal. No mueve el encuadre: solo da la vuelta
+   a la imagen dentro de él.
+6. **Recortar** saca dos extremos bajo la barra de reproducción. Se arrastran, o
+   se afinan con las flechas del teclado —una décima por pulsación, un segundo
+   con Mayúsculas— y al moverlos la previa salta a ese punto, para ver por dónde
+   estás cortando. Mientras esté puesto, la barra de reproducción **se queda
+   encerrada entre los dos**, así que lo que recorres es exactamente lo que se
+   va a exportar.
+7. Ajusta el **tamaño del vídeo** con la barra. **El margen negro de abajo se
    adapta solo**: al ampliar, el vídeo baja y el margen se encoge, hasta llegar
    al borde del lienzo y desaparecer; al reducir, vuelve a crecer. Arrastrando
    sobre la vista previa lo mueves; si es más largo que el hueco lo recorres de
    arriba abajo, y el encuadre está topado para que no deje nunca hueco.
-6. Si quieres **más margen abajo** del que sale solo, súbelo con la barra de
+8. Si quieres **más margen abajo** del que sale solo, súbelo con la barra de
    **margen inferior**. Es opcional: en cero es automático. Lo que elijas se
    readapta al cambiar el tamaño del vídeo, porque los dos extremos de esa barra
    salen del encuadre — el mismo punto vale 195 px con el vídeo al 100 % y 802
    con el vídeo al 200 %.
-7. Cambia los **colores** si quieres. El apartado va plegado, porque casi
+9. Cambia los **colores** si quieres. El apartado va plegado, porque casi
    siempre son los mismos. En escritorio la previa acompaña al scroll, así que
    el selector se toca mirando el resultado.
-8. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
-   (unos 30 MB, luego queda en caché). Abajo aparece el resultado con el botón
-   de descarga.
+10. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
+    (unos 30 MB, luego queda en caché). Abajo aparece el resultado con el botón
+    de descarga.
 
 La **rueda del ratón** y el **pellizco de dos dedos** actúan sobre lo que haya
 debajo, como en news-maker: encima del hueco hacen zoom del vídeo, y encima del
@@ -248,7 +256,19 @@ el rectángulo del vídeo se redondea a enteros en `computeLayout` y se le pasa 
 ffmpeg tal cual, para que las dos no puedan redondear distinto.
 
 La cadena de filtros es una sola línea: escalar, quitar lo que se sale, colocar
-sobre el lienzo negro y superponer la plantilla. Lo que el vídeo se salga por
+sobre el lienzo negro y superponer la plantilla.
+
+El **volteo** entra como un `hflip` **después de escalar y antes de recortar**,
+que es justo donde lo pone la previa: espeja el vídeo dentro de su rectángulo,
+así que el encuadre no se mueve. Volteando antes de escalar, el recorte caería
+en el lado contrario.
+
+El **recorte** va en `-ss` y `-to` **antes del `-i`**, así que ffmpeg ni
+descodifica lo que se tira: solo lee el tramo pedido. Como el vídeo se
+recodifica de todas formas, el corte cae en el fotograma exacto y no en el
+keyframe anterior. El audio, que se copia, solo puede cortar en frontera de
+paquete: en la prueba, un recorte de 3,0 s salió de 2,97, y el audio sobrevivió
+copiado tal cual. Lo que el vídeo se salga por
 arriba o por abajo no hay que recortarlo: la plantilla es negro opaco en esas
 dos zonas y lo tapa igual, tanto en la previa como en el montaje.
 

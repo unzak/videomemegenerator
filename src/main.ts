@@ -41,6 +41,14 @@ const pickEl = need<HTMLButtonElement>("pick");
 const fileNameEl = need<HTMLParagraphElement>("file-name");
 const seekEl = need<HTMLInputElement>("seek");
 const seekValueEl = need<HTMLSpanElement>("seek-value");
+const flipEl = need<HTMLButtonElement>("flip");
+const trimToggleEl = need<HTMLButtonElement>("trim-toggle");
+const trimEl = need<HTMLDivElement>("trim");
+const trimTrackEl = need<HTMLDivElement>("trim-track");
+const trimSpanEl = need<HTMLDivElement>("trim-span");
+const trimInEl = need<HTMLDivElement>("trim-in");
+const trimOutEl = need<HTMLDivElement>("trim-out");
+const trimValueEl = need<HTMLSpanElement>("trim-value");
 const zoomEl = need<HTMLInputElement>("zoom");
 const zoomValueEl = need<HTMLSpanElement>("zoom-value");
 const bottomEl = need<HTMLInputElement>("bottom");
@@ -79,6 +87,10 @@ interface State {
   frameSize: { width: number; height: number } | null;
   file: File | null;
   transform: VideoTransform;
+  /** Espejado horizontal. No toca el encuadre, solo da la vuelta a la imagen. */
+  flip: boolean;
+  /** Tramo que se exporta. `on` en false = el video entero. */
+  trim: { on: boolean; start: number; end: number };
   overlay: HTMLImageElement | null;
   /** URL del MP4 ya montado, para el boton de descarga. */
   result: string | null;
@@ -90,6 +102,8 @@ const state: State = {
   frameSize: null,
   file: null,
   transform: { zoom: 1, offsetX: 0, offsetY: 0 },
+  flip: false,
+  trim: { on: false, start: 0, end: 0 },
   overlay: null,
   result: null,
   busy: false,
@@ -100,6 +114,7 @@ function options(): RenderOptions {
     frame: state.hasVideo ? sourceEl : null,
     frameSize: state.frameSize,
     transform: state.transform,
+    flip: state.flip,
     overlay: state.overlay,
     text: textEl.value,
     font: FONT,
@@ -222,8 +237,11 @@ async function loadFile(file: File): Promise<void> {
     1,
     computeLayout(previewCtx, options()).videoTop,
   );
+  state.flip = false;
+  state.trim = { on: false, start: 0, end: sourceEl.duration || 0 };
+  showFlip();
+  showTrim();
   seekEl.disabled = false;
-  seekEl.max = String(sourceEl.duration || 1);
   seekEl.value = "0";
   showTime();
 
@@ -285,8 +303,10 @@ window.addEventListener("drop", (e) => {
   if (file) void loadFile(file);
 });
 
-// El fotograma solo cambia la previa: el montaje usa el video entero. Sirve
-// para encuadrar cuando el primer fotograma esta en negro, que pasa a menudo.
+// El fotograma solo cambia la previa: al video no le recorta nada. Sirve para
+// encuadrar cuando el primer fotograma esta en negro, que pasa a menudo. Con el
+// recorte puesto, la barra se queda encerrada entre los dos extremos, asi que
+// solo recorre lo que de verdad se va a exportar.
 seekEl.addEventListener("input", () => {
   if (!state.hasVideo) return;
   sourceEl.currentTime = Number(seekEl.value);
@@ -295,6 +315,137 @@ sourceEl.addEventListener("seeked", () => {
   showTime();
   draw();
 });
+
+// --- Voltear ----------------------------------------------------------------
+
+function showFlip(): void {
+  flipEl.setAttribute("aria-pressed", String(state.flip));
+  flipEl.disabled = !state.hasVideo;
+}
+
+flipEl.addEventListener("click", () => {
+  if (!state.hasVideo) return;
+  state.flip = !state.flip;
+  showFlip();
+  draw();
+});
+
+// --- Recortar ---------------------------------------------------------------
+
+/** Lo mas corto que se puede dejar un recorte. Menos que esto no es un video. */
+const TRIM_MIN = 0.2;
+
+/**
+ * m:ss.d. Los extremos del recorte se afinan a decimas, asi que redondearlos al
+ * segundo como el reloj de la reproduccion deja etiquetas que se contradicen
+ * con su propia duracion: «0:02 – 0:06 · 4,5 s».
+ */
+function clockTenths(seconds: number): string {
+  if (!Number.isFinite(seconds)) return "0:00.0";
+  const total = Math.max(0, seconds);
+  const m = Math.floor(total / 60);
+  return `${m}:${(total - m * 60).toFixed(1).padStart(4, "0")}`;
+}
+
+/** El tramo que se va a exportar, o null si se exporta entero. */
+function trimRange(): { start: number; end: number } | null {
+  return state.trim.on ? { start: state.trim.start, end: state.trim.end } : null;
+}
+
+function showTrim(): void {
+  const { on, start, end } = state.trim;
+  const duration = sourceEl.duration || 0;
+  trimToggleEl.setAttribute("aria-pressed", String(on));
+  trimToggleEl.disabled = !state.hasVideo;
+  trimEl.hidden = !on || !state.hasVideo;
+
+  // La barra de reproduccion se encierra entre los dos extremos: asi lo que se
+  // recorre es exactamente lo que va a salir.
+  seekEl.min = String(on ? start : 0);
+  seekEl.max = String(on ? end : duration || 1);
+
+  if (!on || duration <= 0) return;
+  const pct = (t: number) => `${(t / duration) * 100}%`;
+  trimSpanEl.style.left = pct(start);
+  trimSpanEl.style.width = `${((end - start) / duration) * 100}%`;
+  trimInEl.style.left = pct(start);
+  trimOutEl.style.left = pct(end);
+  trimValueEl.textContent =
+    `${clockTenths(start)} – ${clockTenths(end)} · ${(end - start).toFixed(1)} s`;
+}
+
+/** Lleva la previa al extremo que se esta moviendo, para ver por donde corta. */
+function seekTo(time: number): void {
+  sourceEl.currentTime = time;
+  seekEl.value = String(time);
+}
+
+trimToggleEl.addEventListener("click", () => {
+  if (!state.hasVideo) return;
+  state.trim.on = !state.trim.on;
+  if (state.trim.on) {
+    state.trim.start = 0;
+    state.trim.end = sourceEl.duration || 0;
+  }
+  showTrim();
+  showFlip();
+});
+
+/**
+ * Los dos extremos. Se arrastran sobre la pista, y cada uno empuja al otro solo
+ * hasta `TRIM_MIN`: el de entrada no puede pasar del de salida ni al reves.
+ */
+/** Cual de los dos extremos se esta arrastrando ahora mismo. */
+let dragging: "start" | "end" | null = null;
+
+/** Lleva el extremo que se arrastra al punto de la pista donde este el dedo. */
+function dragTo(clientX: number): void {
+  const duration = sourceEl.duration || 0;
+  const rect = trimTrackEl.getBoundingClientRect();
+  if (!dragging || duration <= 0 || rect.width === 0) return;
+  const t = clamp(((clientX - rect.left) / rect.width) * duration, 0, duration);
+  if (dragging === "start") state.trim.start = Math.min(t, state.trim.end - TRIM_MIN);
+  else state.trim.end = Math.max(t, state.trim.start + TRIM_MIN);
+  showTrim();
+  seekTo(dragging === "start" ? state.trim.start : state.trim.end);
+}
+
+// El arrastre se sigue desde `window` y no con `setPointerCapture`: asi el
+// extremo no se queda atras si el puntero se sale de la pista, y de paso se
+// evita que capturar un puntero que ya no existe reviente el manejador.
+window.addEventListener("pointermove", (e) => dragTo(e.clientX));
+for (const type of ["pointerup", "pointercancel"] as const) {
+  window.addEventListener(type, () => {
+    dragging = null;
+  });
+}
+
+for (const [handle, which] of [[trimInEl, "start"], [trimOutEl, "end"]] as const) {
+  handle.addEventListener("pointerdown", (e) => {
+    if (!state.hasVideo || !state.trim.on) return;
+    e.preventDefault();
+    dragging = which;
+    dragTo(e.clientX);
+  });
+
+  // Con el teclado, un paso por pulsacion: es la unica forma de afinarlo al
+  // fotograma sin pelearse con el raton.
+  handle.addEventListener("keydown", (e) => {
+    if (!state.trim.on) return;
+    const step = e.shiftKey ? 1 : 0.04;
+    const dir = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+    if (dir === 0) return;
+    e.preventDefault();
+    const duration = sourceEl.duration || 0;
+    if (which === "start") {
+      state.trim.start = clamp(state.trim.start + dir * step, 0, state.trim.end - TRIM_MIN);
+    } else {
+      state.trim.end = clamp(state.trim.end + dir * step, state.trim.start + TRIM_MIN, duration);
+    }
+    showTrim();
+    seekTo(which === "start" ? state.trim.start : state.trim.end);
+  });
+}
 
 // --- Encuadre ---------------------------------------------------------------
 
@@ -551,7 +702,13 @@ function generate(): void {
 
       const started = performance.now();
       const mp4 = await encode(
-        { source: state.file!, plate: await plate(), rect: layout.video },
+        {
+          source: state.file!,
+          plate: await plate(),
+          rect: layout.video,
+          flip: state.flip,
+          trim: trimRange(),
+        },
         {
           onStage: (message) => setStatus(message),
           onProgress: (ratio) => {
@@ -669,6 +826,9 @@ sizeEl.value = String(FONT_SIZE);
 previewEl.width = CANVAS_W;
 textColorEl.value = COLOR_TEXT;
 highlightEl.value = COLOR_HIGHLIGHT;
+// Voltear y recortar no tienen sentido sin video: apagados hasta que lo haya.
+showFlip();
+showTrim();
 
 void (async () => {
   const [overlay] = await Promise.all([loadImage(overlayUrl), ensureFont()]);

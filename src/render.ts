@@ -57,6 +57,8 @@ export interface RenderOptions {
   frame: CanvasImageSource | null;
   frameSize: { width: number; height: number } | null;
   transform: VideoTransform;
+  /** Voltea el video en horizontal. No mueve el encuadre: solo lo espeja. */
+  flip: boolean;
   /** La capa `PLANTILLA` del PSD, con su hueco y sus degradados. */
   overlay: CanvasImageSource | null;
   text: string;
@@ -499,7 +501,19 @@ export function render(ctx: CanvasRenderingContext2D, opts: RenderOptions): Layo
   // Sin recortar: lo que se salga del hueco por arriba o por abajo lo tapa la
   // plantilla, que ahi es negro opaco. Es lo mismo que hace ffmpeg.
   if (opts.frame && layout.video) {
-    ctx.drawImage(opts.frame, layout.video.x, layout.video.y, layout.video.w, layout.video.h);
+    const { x, y, w, h } = layout.video;
+    if (opts.flip) {
+      // Se espeja **dentro de su rectangulo**, no respecto al lienzo: asi el
+      // encuadre se queda donde estaba y solo se da la vuelta la imagen. En
+      // ffmpeg es lo mismo, un `hflip` despues de escalar y antes de recortar.
+      ctx.save();
+      ctx.translate(x + w, y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(opts.frame, 0, 0, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(opts.frame, x, y, w, h);
+    }
   }
 
   drawPlate(ctx, opts, layout);

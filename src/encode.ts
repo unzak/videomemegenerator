@@ -51,6 +51,10 @@ export interface EncodeJob {
   plate: Blob;
   /** Donde va el video dentro del lienzo. Sale de `computeLayout`. */
   rect: Rect;
+  /** Voltea el video en horizontal, igual que en la previa. */
+  flip: boolean;
+  /** Tramo que se conserva, en segundos. `null` = el video entero. */
+  trim: { start: number; end: number } | null;
 }
 
 export interface EncodeHandlers {
@@ -112,7 +116,8 @@ function extension(name: string): string {
   return m ? m[1]!.toLowerCase() : "mp4";
 }
 
-function args(input: string, audio: "copy" | "aac", rect: Rect): string[] {
+function args(input: string, audio: "copy" | "aac", job: EncodeJob): string[] {
+  const { rect } = job;
   const { crop, pad } = place(rect);
   // Escalar, quitar lo que se sale, colocar sobre el lienzo negro y pegarle la
   // plantilla encima. Es exactamente lo que hace la previa en el canvas.
@@ -121,11 +126,23 @@ function args(input: string, audio: "copy" | "aac", rect: Rect): string[] {
   // proposito, y `scale` intenta conservar la del original metiendo un pixel
   // no cuadrado: sin esto el MP4 sale marcado como 865:1538 en vez de 9:16 y
   // los reproductores lo estiran.
+  //
+  // El `hflip` va **despues de escalar y antes de recortar**, que es donde lo
+  // pone la previa: espeja el video dentro de su rectangulo, asi que el
+  // encuadre no se mueve. Volteando antes de escalar el recorte caeria en el
+  // lado contrario.
   const chain =
-    `[0:v]scale=${rect.w}:${rect.h}:flags=lanczos,setsar=1,${crop},${pad}[v];` +
+    `[0:v]scale=${rect.w}:${rect.h}:flags=lanczos,setsar=1` +
+    `${job.flip ? ",hflip" : ""},${crop},${pad}[v];` +
     `[v][1:v]overlay=0:0:format=auto[out]`;
 
   return [
+    // El recorte va **antes** del `-i`, asi que ffmpeg no descodifica lo que
+    // se tira: solo lee el tramo pedido. Como el video se recodifica de todas
+    // formas, el corte sale en el fotograma exacto y no en el keyframe
+    // anterior. El audio, que se copia, solo puede cortar en frontera de
+    // paquete, asi que ahi puede bailar unos milisegundos.
+    ...(job.trim ? ["-ss", job.trim.start.toFixed(3), "-to", job.trim.end.toFixed(3)] : []),
     "-i", input,
     "-i", "plate.png",
     "-filter_complex", chain,
@@ -171,13 +188,13 @@ export async function encode(job: EncodeJob, handlers: EncodeHandlers): Promise<
   try {
     handlers.onStage("Montando el vídeo…");
     tail = [];
-    let code = await ff.exec(args(input, "copy", job.rect));
+    let code = await ff.exec(args(input, "copy", job));
     if (code !== 0) {
       // El audio del original puede no caber en un MP4 tal cual (pasa con los
       // .webm, que suelen traer Opus). Entonces no queda otra que recodificarlo.
       handlers.onStage("El audio no cabe tal cual en un MP4; recodificándolo…");
       tail = [];
-      code = await ff.exec(args(input, "aac", job.rect));
+      code = await ff.exec(args(input, "aac", job));
     }
     if (code !== 0) throw new Error(`ffmpeg terminó con el código ${code}.\n${tail.join("\n")}`);
 

@@ -42,6 +42,15 @@
           <p class="muted small" id="file-name">Ningún archivo seleccionado</p>
         </div>
 
+        <div class="field toggles">
+          <button type="button" id="flip" class="btn-toggle" aria-pressed="false">
+            Voltear
+          </button>
+          <button type="button" id="trim-toggle" class="btn-toggle" aria-pressed="false">
+            Recortar
+          </button>
+        </div>
+
         <div class="field">
           <label for="zoom">
             Tamaño del vídeo
@@ -89,6 +98,17 @@
           <input type="range" id="seek" min="0" max="1" step="0.001" value="0" disabled
                  aria-label="Fotograma de la previa" />
           <span class="muted small" id="seek-value">0:00 / 0:00</span>
+        </div>
+
+        <div class="trim" id="trim" hidden>
+          <div class="trim-track" id="trim-track">
+            <div class="trim-span" id="trim-span"></div>
+            <div class="trim-handle" id="trim-in" tabindex="0" role="slider"
+                 aria-label="Inicio del recorte"></div>
+            <div class="trim-handle" id="trim-out" tabindex="0" role="slider"
+                 aria-label="Final del recorte"></div>
+          </div>
+          <span class="muted small" id="trim-value">0:00 – 0:00</span>
         </div>
 
         <p class="muted small" id="preview-info"></p>
