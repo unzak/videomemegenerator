@@ -426,6 +426,40 @@ export function clampVideoOffset(
 }
 
 /**
+ * Cambia el zoom dejando quieto el punto del video que hay bajo `anchor`.
+ *
+ * Sin esto la imagen se escala desde el centro del lienzo, asi que lo que
+ * estabas mirando se va de sitio y hay que ampliar y volver a colocar, una y
+ * otra vez. Anclando al puntero —o al punto medio de los dedos— la imagen
+ * crece justo por donde apuntas.
+ *
+ * `top` entra por parametro porque el techo del hueco lo pone el rotulo, no el
+ * encuadre: no cambia al ampliar, pero hace falta para saber donde cae el video.
+ */
+export function zoomVideoAt(
+  frameSize: { width: number; height: number },
+  transform: VideoTransform,
+  zoom: number,
+  top: number,
+  anchor: { x: number; y: number },
+): void {
+  const before = videoScale(frameSize, transform.zoom);
+  const after = videoScale(frameSize, zoom);
+  transform.zoom = zoom;
+  if (before <= 0 || after === before) return;
+
+  // Que punto del original cae bajo el ancla, con la escala de ahora.
+  const x = (CANVAS_W - frameSize.width * before) / 2 + transform.offsetX;
+  const y = top + transform.offsetY;
+  const sx = (anchor.x - x) / before;
+  const sy = (anchor.y - y) / before;
+
+  // Y el desplazamiento que lo devuelve al mismo sitio ya con la escala nueva.
+  transform.offsetX = anchor.x - sx * after - (CANVAS_W - frameSize.width * after) / 2;
+  transform.offsetY = anchor.y - sy * after - top;
+}
+
+/**
  * Desplazamiento vertical de partida: el video centrado en el hueco. Con uno
  * mas largo que el hueco, ver el centro es lo que se espera; con uno que cabe
  * entero sale 0 y se pega al techo, que es donde tiene que ir.

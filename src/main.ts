@@ -19,6 +19,7 @@ import {
   computeLayout,
   render,
   renderPlate,
+  zoomVideoAt,
   type RenderOptions,
   type VideoTransform,
 } from "./render.js";
@@ -331,8 +332,21 @@ function setFontSize(size: number): void {
   draw();
 }
 
-function setZoom(zoom: number): void {
-  state.transform.zoom = clamp(zoom, ZOOM_MIN, ZOOM_MAX);
+/**
+ * `anchor` es el punto del lienzo que tiene que quedarse quieto: el puntero, o
+ * el punto medio de los dedos. Sin el —cuando el zoom viene de la barra, que no
+ * apunta a nada— se ancla en el centro de lo que se ve, que es lo que uno esta
+ * mirando.
+ */
+function setZoom(zoom: number, anchor?: { x: number; y: number }): void {
+  const next = clamp(zoom, ZOOM_MIN, ZOOM_MAX);
+  if (state.frameSize) {
+    const { videoTop, videoArea } = computeLayout(previewCtx, options());
+    const at = anchor ?? { x: CANVAS_W / 2, y: videoArea.y + videoArea.h / 2 };
+    zoomVideoAt(state.frameSize, state.transform, next, videoTop, at);
+  } else {
+    state.transform.zoom = next;
+  }
   zoomEl.value = String(state.transform.zoom);
   clampOffset();
   draw();
@@ -393,12 +407,11 @@ previewEl.addEventListener("pointermove", (e) => {
     if (target === "text") {
       setFontSize(pinch.fontSize * ratio);
     } else {
-      state.transform.zoom = clamp(pinch.zoom * ratio, ZOOM_MIN, ZOOM_MAX);
-      zoomEl.value = String(state.transform.zoom);
-      // El punto medio tambien arrastra: se coloca y se dimensiona de un gesto.
+      // El punto medio arrastra y ademas ancla el zoom, asi que se coloca y se
+      // dimensiona de un solo gesto y sin que la imagen se escape del dedo.
       state.transform.offsetX += (g.mx - lastX) * s;
       state.transform.offsetY += (g.my - lastY) * s;
-      draw();
+      setZoom(pinch.zoom * ratio, toCanvas(g.mx, g.my));
     }
     lastX = g.mx;
     lastY = g.my;
@@ -449,7 +462,7 @@ previewEl.addEventListener(
     // Exponencial, para que el paso se note igual en cualquier escala.
     const factor = Math.exp(-delta / WHEEL_DIVISOR);
     if (hit === "text") setFontSize(Number(sizeEl.value) * factor);
-    else setZoom(state.transform.zoom * factor);
+    else setZoom(state.transform.zoom * factor, toCanvas(e.clientX, e.clientY));
   },
   { passive: false },
 );

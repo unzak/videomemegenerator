@@ -53,8 +53,16 @@ publicada funciona sola.
 
 La **rueda del ratón** y el **pellizco de dos dedos** actúan sobre lo que haya
 debajo, como en news-maker: encima del hueco hacen zoom del vídeo, y encima del
-marco cambian el tamaño de la letra. Al pellizcar el vídeo, el punto medio de
-los dedos arrastra a la vez, así que se coloca y se dimensiona de un solo gesto.
+marco cambian el tamaño de la letra.
+
+El zoom del vídeo va **anclado al puntero**: lo que tienes debajo del ratón se
+queda donde está y la imagen crece por ahí. Escalando desde el centro del lienzo
+—que es lo que hacía antes— lo que estabas mirando se te iba de la pantalla y
+tocaba ampliar y volver a colocar, una y otra vez. Solo se desvía cuando el
+encuadre topa con el borde, porque ahí manda el tope de no dejar hueco. Al
+pellizcar, el ancla es el punto medio de los dedos, que además arrastra, así que
+se coloca y se dimensiona de un solo gesto. Y desde la barra, que no apunta a
+nada, el ancla es el centro de lo que se ve.
 
 ## Calidad
 
