@@ -238,7 +238,7 @@ async function loadFile(file: File): Promise<void> {
   state.transform.offsetY = centerVideoOffset(
     state.frameSize,
     1,
-    computeLayout(previewCtx, options()).videoTop,
+    computeLayout(previewCtx, options()).videoTopBase,
   );
   state.flip = false;
   state.trim = { start: 0, end: sourceEl.duration || 0 };
@@ -315,6 +315,7 @@ window.addEventListener("drop", (e) => {
 seekEl.addEventListener("input", () => {
   if (!state.hasVideo) return;
   pausePreview();
+  showSeekFill();
   sourceEl.currentTime = Number(seekEl.value);
 });
 sourceEl.addEventListener("seeked", () => {
@@ -356,6 +357,7 @@ function pausePreview(): void {
 /** Lleva la barra y el reloj a donde vaya la reproduccion. */
 function followTime(): void {
   seekEl.value = String(sourceEl.currentTime);
+  showSeekFill();
   showTime();
 }
 
@@ -447,14 +449,37 @@ function showTrim(): void {
   seekEl.min = String(start);
   seekEl.max = String(end || duration || 1);
 
+  showSeekFill();
   if (duration <= 0) return;
-  const pct = (t: number) => `${(t / duration) * 100}%`;
-  trimSpanEl.style.left = pct(start);
-  trimSpanEl.style.width = `${((end - start) / duration) * 100}%`;
-  trimInEl.style.left = pct(start);
-  trimOutEl.style.left = pct(end);
+  const f0 = start / duration;
+  const f1 = end / duration;
+  trimSpanEl.style.left = alongTrack(f0);
+  trimSpanEl.style.width = `calc((100% - ${HANDLE * 2}px) * ${f1 - f0})`;
+  trimInEl.style.left = alongTrack(f0);
+  trimOutEl.style.left = alongTrack(f1);
   trimValueEl.textContent =
     `${clockTenths(start)} – ${clockTenths(end)} · ${(end - start).toFixed(1)} s`;
+}
+
+/**
+ * Medio tirador. Los dos extremos del recorte y el pulgar de la reproduccion
+ * miden 12 px y recorren de 6 a ancho-6, no de 0 a 100 %: es lo que hace que
+ * las dos pistas empiecen y acaben en el mismo sitio.
+ */
+const HANDLE = 6;
+
+/** Posicion de un tirador dentro de la pista, en el recorrido util. */
+function alongTrack(fraction: number): string {
+  return `calc(${HANDLE}px + (100% - ${HANDLE * 2}px) * ${fraction})`;
+}
+
+/** El relleno de la barra de reproduccion, que el `range` pintado ya no da. */
+function showSeekFill(): void {
+  const min = Number(seekEl.min);
+  const max = Number(seekEl.max);
+  const span = max - min;
+  const f = span > 0 ? (Number(seekEl.value) - min) / span : 0;
+  seekEl.style.setProperty("--fill", alongTrack(Math.min(1, Math.max(0, f))));
 }
 
 /** Lleva la previa al extremo que se esta moviendo, para ver por donde corta. */
@@ -475,7 +500,10 @@ function dragTo(clientX: number): void {
   const duration = sourceEl.duration || 0;
   const rect = trimTrackEl.getBoundingClientRect();
   if (!dragging || duration <= 0 || rect.width === 0) return;
-  const t = clamp(((clientX - rect.left) / rect.width) * duration, 0, duration);
+  // Mismo recorrido que los tiradores: de 6 a ancho-6.
+  const travel = rect.width - HANDLE * 2;
+  if (travel <= 0) return;
+  const t = clamp(((clientX - rect.left - HANDLE) / travel) * duration, 0, duration);
   if (dragging === "start") state.trim.start = Math.min(t, state.trim.end - TRIM_MIN);
   else state.trim.end = Math.max(t, state.trim.start + TRIM_MIN);
   showTrim();
@@ -535,8 +563,8 @@ function clampOffset(): void {
   if (!state.frameSize) return;
   // El techo del hueco depende del rotulo y del cuerpo, nunca del encuadre, asi
   // que se le puede preguntar a la composicion antes de recortar nada.
-  const { videoTop } = computeLayout(previewCtx, options());
-  clampVideoOffset(state.frameSize, state.transform, videoTop);
+  const { videoTopBase } = computeLayout(previewCtx, options());
+  clampVideoOffset(state.frameSize, state.transform, videoTopBase);
 }
 
 function toCanvas(clientX: number, clientY: number): { x: number; y: number } {
@@ -572,9 +600,9 @@ function setFontSize(size: number): void {
 function setZoom(zoom: number, anchor?: { x: number; y: number }): void {
   const next = clamp(zoom, ZOOM_MIN, ZOOM_MAX);
   if (state.frameSize) {
-    const { videoTop, videoArea } = computeLayout(previewCtx, options());
+    const { videoTopBase, videoArea } = computeLayout(previewCtx, options());
     const at = anchor ?? { x: CANVAS_W / 2, y: videoArea.y + videoArea.h / 2 };
-    zoomVideoAt(state.frameSize, state.transform, next, videoTop, at);
+    zoomVideoAt(state.frameSize, state.transform, next, videoTopBase, at);
   } else {
     state.transform.zoom = next;
   }

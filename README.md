@@ -211,13 +211,15 @@ el desvanecido no fundiría nada, sólo oscurecería imagen. Y como se va
 comprimiendo con el margen —97 px de margen dan 79 de desvanecido, 36 dan 30—,
 ampliar el vídeo hasta llenar el hueco no da ningún salto.
 
-Dos topes que no se ven pero mandan:
+**A lo alto el vídeo se mueve libre, en los dos sentidos.** Como los dos
+degradados van pegados a sus filos, subirlo agranda el margen de abajo y bajarlo
+agranda el marco de arriba, y ninguna de las dos cosas deja un corte: el
+degradado de arriba se pega al filo del vídeo en cuanto este baja del techo. El
+único tope es no cerrar la ventana, que nunca baja de `VIDEO_MIN_H`.
 
-- El borde de arriba del vídeo se puede subir pero **nunca bajar** del techo: por
-  encima la plantilla es negro opaco y tapa el corte, y bajándolo se vería el
-  filo cruzando el ancho.
-- Un vídeo que cabe entero no se puede subir, porque su filo de abajo es el que
-  manda dónde va el margen. Uno más largo que el hueco sí se recorre arrastrando.
+A lo ancho no hay libertad que dar: el hueco ocupa el lienzo entero, así que
+mover el vídeo de lado solo puede destapar negro por un costado. Solo se puede
+desplazar lo que sobre del encaje.
 
 **Y el bloque de arriba va 65 px más alto que en el PSD, con el logo al 80 %.** Por encima del logo el
 PSD deja 347 px de negro vacío que no pintan nada, y subiendo el bloque ese aire

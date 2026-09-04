@@ -251,8 +251,14 @@ export interface Layout {
    */
   videoArea: Rect;
   /**
-   * Techo del hueco: donde se pega el degradado de arriba. El del PSD mientras
-   * el rotulo quepa donde cabia, y mas abajo cuando no.
+   * El techo que pone el rotulo: donde se abriria el hueco con el video sin
+   * mover. Es el tope del que el encuadre no puede subir.
+   */
+  videoTopBase: number;
+  /**
+   * Donde se pega el degradado de arriba. El de arriba mientras el video no
+   * baje de ahi, y el filo del video cuando si: asi bajarlo no deja un corte,
+   * solo agranda el marco negro.
    */
   videoTop: number;
   /** Donde se pinta el video. null si aun no hay video. */
@@ -361,14 +367,19 @@ export function computeLayout(
   const lines = composed.lines;
   setFont(ctx, opts.font, size);
   const blockTop = TEXT_TOP;
-  const videoTop = videoTopFor(lines.length, size);
+  const videoTopBase = videoTopFor(lines.length, size);
 
   // El rectangulo se redondea aqui, y no al dibujar, porque este mismo va a
   // parar a ffmpeg: si la previa y la pieza final redondean distinto, no
   // cuadran.
   const video = opts.frameSize
-    ? videoRect(opts.frameSize, opts.transform, videoTop)
+    ? videoRect(opts.frameSize, opts.transform, videoTopBase)
     : null;
+
+  // El degradado de arriba se pega al filo del video en cuanto este baja del
+  // techo. Sin esto, bajarlo dejaba el degradado desvaneciendo sobre negro y un
+  // corte seco cruzando el ancho justo donde empieza la imagen.
+  const videoTop = video ? Math.max(videoTopBase, video.y) : videoTopBase;
 
   // El suelo del hueco lo pone el video, no el PSD: llega hasta su filo
   // inferior, topado al lienzo. La barra puede subirse a mano de ahi para
@@ -388,6 +399,7 @@ export function computeLayout(
     lines,
     blockTop,
     videoArea: { x: 0, y: videoTop, w: CANVAS_W, h: videoBottom - videoTop },
+    videoTopBase,
     videoTop,
     video,
     videoBottom,
@@ -416,15 +428,19 @@ export function clampVideoOffset(
   const w = frameSize.width * scale;
   const h = frameSize.height * scale;
 
+  // A lo ancho no hay libertad que dar: el hueco ocupa el lienzo entero, asi
+  // que mover el video de lado solo puede destapar negro por un costado. Solo
+  // se puede desplazar lo que sobre del encaje.
   const maxX = Math.max(0, (w - CANVAS_W) / 2);
   transform.offsetX = Math.min(maxX, Math.max(-maxX, transform.offsetX));
 
-  // Un video que cabe entero no se puede subir: su borde de abajo es el que
-  // manda donde va la barra negra, y moverlo seria recortarlo por gusto. Uno
-  // mas largo que el hueco si se recorre, hasta que acabe en el borde del
-  // lienzo.
-  const minY = Math.min(0, CANVAS_H - top - h);
-  transform.offsetY = Math.min(0, Math.max(minY, transform.offsetY));
+  // A lo alto si, y en los dos sentidos: los dos degradados van pegados a los
+  // filos del video, asi que subirlo agranda la barra de abajo y bajarlo
+  // agranda el marco de arriba, sin que ninguna de las dos cosas deje un corte.
+  // El unico tope es no cerrar la ventana: nunca menos de `VIDEO_MIN_H`.
+  const minY = VIDEO_MIN_H - h;
+  const maxY = CANVAS_H - top - VIDEO_MIN_H;
+  transform.offsetY = Math.min(maxY, Math.max(minY, transform.offsetY));
 }
 
 /**

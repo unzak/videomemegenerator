@@ -94,7 +94,7 @@
           </button>
         </div>
 
-        <div class="scrub">
+        <div class="bars">
           <button type="button" id="play" class="icon-btn" aria-pressed="false" disabled
                   title="Reproducir la previa" aria-label="Reproducir la previa">
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -105,9 +105,8 @@
           <input type="range" id="seek" min="0" max="1" step="0.001" value="0" disabled
                  aria-label="Fotograma de la previa" />
           <span class="muted small" id="seek-value">0:00 / 0:00</span>
-        </div>
 
-        <div class="trim" id="trim" hidden>
+          <div class="trim" id="trim" hidden>
           <span class="icon-btn is-static" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
                  stroke-linecap="round" stroke-linejoin="round">
@@ -124,6 +123,7 @@
                  aria-label="Final del recorte"></div>
           </div>
           <span class="muted small" id="trim-value">0:00 – 0:00</span>
+          </div>
         </div>
 
         <p class="muted small" id="preview-info"></p>

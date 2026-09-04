@@ -195,6 +195,93 @@ input[type="range"]:disabled {
 }
 
 /*
+ * Las dos barras de debajo de la previa —reproducir y recortar— tienen que ser
+ * la misma barra. Van en una sola rejilla de tres columnas: icono, pista y
+ * etiqueta. Compartiendo rejilla, la columna de las etiquetas la fija la mas
+ * larga de las dos, asi que las pistas empiezan y acaban exactamente igual sin
+ * tener que cuadrar anchos a mano.
+ */
+.bars {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+  margin: 12px 0 6px;
+}
+
+/* `contents` para que el envoltorio no rompa la rejilla del padre. */
+.trim {
+  display: contents;
+}
+
+.trim[hidden] {
+  display: none;
+}
+
+/*
+ * El `range` nativo se repinta entero para que su pulgar mida exactamente lo
+ * mismo que los tiradores del recorte, 12 px. Es lo unico que hace que las dos
+ * pistas recorran el mismo camino: el pulgar se mueve entre 6 px y ancho-6, y
+ * los tiradores tambien.
+ *
+ * Al quitarle la apariencia nativa se pierde el relleno de `accent-color`, asi
+ * que se repone con un degradado duro gobernado por `--fill`, que actualiza el
+ * propio codigo al mover la barra.
+ */
+#seek {
+  --fill: 0%;
+
+  appearance: none;
+  -webkit-appearance: none;
+  height: 22px;
+  /* Chrome le pone 2 px por lado a los `range`, y eso descuadraba las pistas. */
+  margin: 0;
+  background: none;
+  cursor: pointer;
+}
+
+#seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0 var(--fill),
+    var(--panel-2) var(--fill) 100%
+  );
+}
+
+#seek::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0 var(--fill),
+    var(--panel-2) var(--fill) 100%
+  );
+}
+
+#seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 22px;
+  /* Centra el tirador sobre una pista de 4 px: (22 - 4) / 2. */
+  margin-top: -9px;
+  border-radius: 4px;
+  background: var(--text);
+  border: 1px solid var(--bg);
+}
+
+#seek::-moz-range-thumb {
+  width: 12px;
+  height: 22px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  background: var(--text);
+  border: 1px solid var(--bg);
+}
+
+/*
  * El video se suelta en cualquier parte de la ventana, no en una caja: la caja
  * ocupaba sitio para no hacer nada mas que ser una diana. Esto es solo el aviso
  * de que se puede soltar, y solo sale mientras se arrastra algo por encima.
@@ -301,27 +388,6 @@ input[type="range"]:disabled {
 }
 
 /*
- * El fotograma va debajo de la previa y sin etiqueta, como la barra de un
- * reproductor: es lo que se espera de algo que recorre un video, y ahi se
- * arrastra mirando la imagen en vez de mirando el panel.
- */
-.scrub {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0 4px;
-}
-
-.scrub > span,
-.trim > span {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  /* Mismo ancho en las dos filas: es lo que deja las pistas alineadas. */
-  min-width: 96px;
-  text-align: right;
-}
-
-/*
  * El play de la reproduccion y las tijeras del recorte. Van los dos al mismo
  * tono y al mismo ancho, que es lo que deja las dos pistas alineadas.
  */
@@ -418,30 +484,18 @@ input[type="range"]:disabled {
  * dos extremos marcan lo que se exporta, y la barra de arriba se queda
  * encerrada entre ellos.
  */
-.trim {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 4px;
-}
-
-.trim[hidden] {
-  display: none;
-}
-
 .trim-track {
   position: relative;
-  flex: 1;
   height: 22px;
-  /* Los mismos 10 px que se come el pulgar del range, para que cuadren. */
-  margin: 0 10px;
   touch-action: none;
+  cursor: pointer;
 }
 
+/* Los mismos 4 px de grosor y los mismos 9 px de centrado que el `range`. */
 .trim-track::before {
   content: "";
   position: absolute;
-  inset: 9px 0 9px;
+  inset: 9px 0;
   border-radius: 2px;
   background: var(--panel-2);
 }
@@ -464,6 +518,13 @@ input[type="range"]:disabled {
   background: var(--text);
   border: 1px solid var(--bg);
   cursor: ew-resize;
+}
+
+/* Las dos etiquetas, al mismo sitio y sin bailar al cambiar los numeros. */
+.bars > span {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .trim-handle:focus-visible {
