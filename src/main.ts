@@ -23,6 +23,7 @@ import {
   type RenderOptions,
   type VideoTransform,
 } from "./render.js";
+import { applyFixes, check, type Issue } from "./spell.js";
 import "./style.css";
 
 function need<T extends Element>(id: string): T {
@@ -55,6 +56,12 @@ const previewInfoEl = need<HTMLParagraphElement>("preview-info");
 const outputEl = need<HTMLElement>("output");
 const resultEl = need<HTMLVideoElement>("result");
 const resultInfoEl = need<HTMLParagraphElement>("result-info");
+const reviewEl = need<HTMLDivElement>("review");
+const reviewTitleEl = need<HTMLParagraphElement>("review-title");
+const reviewListEl = need<HTMLUListElement>("review-list");
+const reviewFixEl = need<HTMLDivElement>("review-fix");
+const reviewProposalEl = need<HTMLParagraphElement>("review-proposal");
+const fixEl = need<HTMLButtonElement>("fix");
 const downloadEl = need<HTMLButtonElement>("download");
 const sourceEl = need<HTMLVideoElement>("source");
 
@@ -523,12 +530,17 @@ function setBusy(busy: boolean): void {
   if (!busy) progressBarEl.style.width = "0";
 }
 
-generateEl.addEventListener("click", () => {
+function generate(): void {
   if (state.busy) return;
   if (!state.file) {
     setStatus("Falta el vídeo.", "error");
     return;
   }
+
+  // La revision arranca ya, no al final: montar el video tarda, y de nada
+  // sirve enterarse de la errata cuando el rotulo lleva un minuto incrustado.
+  outputEl.hidden = false;
+  void review(textEl.value);
 
   void (async () => {
     setBusy(true);
@@ -566,6 +578,77 @@ generateEl.addEventListener("click", () => {
       setBusy(false);
     }
   })();
+}
+
+generateEl.addEventListener("click", generate);
+
+// --- Revision del texto ----------------------------------------------------
+
+/** Ultimo texto revisado con exito, para no preguntar dos veces por lo mismo. */
+let reviewed = "";
+/** Cada revision anula el pintado de la anterior, que pudo tardar mas. */
+let reviewToken = 0;
+/** Texto propuesto por la ultima revision, el que aplica CORREGIR. */
+let proposal = "";
+
+function setReview(title: string, issues: Issue[] = []): void {
+  reviewEl.hidden = false;
+  reviewTitleEl.textContent = title;
+
+  reviewListEl.replaceChildren();
+  reviewListEl.hidden = issues.length === 0;
+  for (const issue of issues) {
+    const li = document.createElement("li");
+    const marked = document.createElement("q");
+    marked.textContent = issue.text;
+    li.append(marked);
+    if (issue.replacements.length > 0) {
+      const to = document.createElement("b");
+      to.textContent = issue.replacements.join(", ");
+      li.append(" → ", to);
+    }
+    const why = document.createElement("span");
+    why.className = "muted";
+    why.textContent = ` · ${issue.message}`;
+    li.append(why);
+    reviewListEl.append(li);
+  }
+
+  // La propuesta solo sale si de verdad cambia algo respecto a lo escrito.
+  proposal = issues.length > 0 ? applyFixes(textEl.value, issues) : "";
+  const usable = proposal !== "" && proposal !== textEl.value;
+  reviewFixEl.hidden = !usable;
+  reviewProposalEl.textContent = usable ? proposal : "";
+}
+
+async function review(text: string): Promise<void> {
+  if (text.trim() === reviewed) return;
+  const token = ++reviewToken;
+  setReview("Revisando el texto…");
+  try {
+    const issues = await check(text);
+    if (token !== reviewToken) return;
+    reviewed = text.trim();
+    const n = issues.length;
+    setReview(n === 0 ? "Sin erratas." : `${n} ${n === 1 ? "aviso" : "avisos"} en el texto`, issues);
+  } catch {
+    if (token !== reviewToken) return;
+    // Que no se pueda revisar no debe estropear el montaje, que ya va en marcha.
+    setReview("No se pudo revisar el texto.");
+  }
+}
+
+/**
+ * Aplica la propuesta al rotulo y vuelve a montar el video. Aqui eso cuesta
+ * bastante mas que en las imagenes, pero el rotulo va incrustado: sin rehacerlo
+ * el video que te llevas sigue teniendo la errata.
+ */
+fixEl.addEventListener("click", () => {
+  if (state.busy) return;
+  if (proposal === "" || proposal === textEl.value) return;
+  textEl.value = proposal;
+  draw();
+  generate();
 });
 
 downloadEl.addEventListener("click", () => {

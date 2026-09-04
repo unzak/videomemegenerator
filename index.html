@@ -97,6 +97,20 @@
 
     <section class="output" id="output" hidden>
       <h2>Resultado</h2>
+      <div class="review" id="review" hidden>
+        <div class="review-head">
+          <p id="review-title"></p>
+          <a class="lt" href="https://languagetool.org" target="_blank" rel="noopener"
+            >LanguageTool</a
+          >
+        </div>
+        <ul id="review-list" hidden></ul>
+        <div class="review-fix" id="review-fix" hidden>
+          <p id="review-proposal"></p>
+          <button type="button" id="fix" class="btn-secondary">CORREGIR</button>
+        </div>
+      </div>
+
       <video id="result" controls playsinline></video>
       <p class="muted small" id="result-info"></p>
       <button type="button" id="download" class="btn">Descargar MP4</button>
