@@ -1,14 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Fondo transparente -->
-  <rect x="36" y="36" width="440" height="440" rx="84" fill="#FFFFFF"/>
+  <!-- Cuadro azul con las esquinas redondeadas -->
+  <rect x="36" y="36" width="440" height="440" rx="84" fill="#003392"/>
 
-  <!-- Pantalla de vídeo -->
-  <rect x="104" y="118" width="304" height="220" rx="34" fill="#003392"/>
-
-  <!-- Play -->
-  <path d="M224 178 L224 278 L306 228 Z" fill="#FFFFFF"/>
-
-  <!-- Línea de edición / timeline -->
-  <rect x="104" y="366" width="304" height="28" rx="14" fill="#003392"/>
-  <circle cx="258" cy="380" r="22" fill="#FFFFFF" stroke="#003392" stroke-width="12"/>
+  <!--
+    Play blanco. Va entre el centro de su caja (270) y su centroide (243),
+    porque un triangulo apuntando a la derecha centrado por la caja se ve
+    cargado a la derecha, y centrado por el centroide, a la izquierda.
+  -->
+  <path d="M190 166 L190 346 L350 256 Z" fill="#FFFFFF"/>
 </svg>
