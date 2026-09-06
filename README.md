@@ -345,6 +345,24 @@ euro.
 | `src/encode.ts` | ffmpeg en WebAssembly: de la plantilla y el rectángulo al MP4. |
 | `src/main.ts` | La interfaz: carga del vídeo, encuadre, colores y descarga. |
 
+## Aspecto
+
+La página lleva el mismo aire que el panel
+[Pulso Viral](https://github.com/unzak/noticias-virales): fondo rosa muy claro
+con dos degradados anclados a la ventana, papel blanco con sombra rosada, el
+rosa `#ed1470` de acento, Inter en la interfaz y una cabecera con el rótulo del
+punto, el icono y el titular grande.
+
+Arriba va el menú de las tres herramientas, pegado al borde superior: la
+abierta en la pastilla rosa y las otras dos a un clic. Los enlaces apuntan a
+GitHub Pages, así que sirviendo en local solo responde en `localhost` la que
+tengas levantada; las otras saltan a la publicada. Por debajo de 560 px se
+quedan los nombres cortos, que los tres enteros no caben.
+
+Es solo la piel. Los colores viven en las variables de `src/style.css`, así que
+el MP4 que se monta no se entera de nada. La cama del vídeo sigue siendo oscura
+a propósito (`--ink`): la imagen se juzga sobre negro de estudio, no sobre rosa.
+
 ## Parientes
 
 - [news-maker](../news-maker) — las noticias de Cabronazi, 1080 × 1350, también

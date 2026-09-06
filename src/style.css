@@ -12,43 +12,220 @@
   font-display: swap;
 }
 
+/*
+ * La paleta del panel Pulso Viral (noticias-virales): fondo rosa muy claro,
+ * papel blanco, el rosa #ed1470 de acento y sombras rosadas en vez de negras.
+ * Los nombres son los de siempre, asi que el resto de la hoja no se entera.
+ */
 :root {
-  --bg: #12100f;
-  --panel: #1c1a19;
-  --panel-2: #262322;
-  --line: #35312f;
-  --text: #f2eeec;
-  --muted: #9a918d;
-  --accent: #d81b60;
-  --accent-hover: #ef2a70;
-  --error: #ff8a8a;
-  --radius: 10px;
+  --bg: #fff7fb;
+  --panel: #ffffff;
+  --panel-2: #fff0f7;
+  --line: #efd5e2;
+  --text: #28151f;
+  --muted: #806b76;
+  --accent: #ed1470;
+  --accent-hover: #c8105e;
+  --accent-soft: rgba(237, 20, 112, 0.09);
+  --error: #c72d55;
+  /*
+   * La cama de los lienzos sigue siendo oscura: la foto y el video se juzgan
+   * sobre negro de estudio, no sobre rosa.
+   */
+  --ink: #0e1015;
+  --shadow: 0 8px 24px rgba(117, 35, 73, 0.06);
+  /* El alto de la barra de herramientas, que las previas pegajosas
+     tienen que descontar para no meterse debajo. */
+  --nav-h: 54px;
+  --radius: 16px;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/*
+ * Los degradados van en una capa fija, como en el panel. Puestos sobre el body
+ * sus centros en porcentaje se calculan sobre el alto del documento, asi que en
+ * una pagina larga se irian fuera de la vista y el fondo se veria plano.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 85% -10%, rgba(237, 20, 112, 0.15), transparent 33rem),
+    radial-gradient(circle at -10% 20%, rgba(255, 190, 218, 0.25), transparent 28rem);
+}
+
 body {
   margin: 0;
-  padding: 32px 24px 64px;
+  padding: 0 24px 64px;
+  min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 15px;
   line-height: 1.5;
 }
 
+/*
+ * El menu de las tres herramientas. Va pegado arriba y a sangre: el body tiene
+ * su margen lateral, asi que la barra lo descuenta para llegar a los bordes.
+ */
+.tools {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: 0 -24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(117, 35, 73, 0.05);
+  overflow-x: auto;
+  /*
+   * La barra de desplazamiento sobra: con tres enlaces solo hace falta rodar
+   * en lo estrecho, y ahi se arrastra con el dedo.
+   */
+  scrollbar-width: none;
+}
+
+.tools::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * `max-content` con margenes automaticos: centrado mientras quepa, y pegado al
+ * principio en cuanto no quepa. Con `justify-content: center` a secas, lo que
+ * se sale por la izquierda no hay forma de alcanzarlo.
+ */
+.tools-inner {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-width: max-content;
+  margin: 0 auto;
+  padding: 8px 24px;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tool svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.tool:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tool:hover svg,
+.tool.is-current svg {
+  opacity: 1;
+}
+
+.tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* La herramienta abierta, en la pastilla rosa. */
+.tool.is-current {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(237, 20, 112, 0.24);
+}
+
+.tool-name-short {
+  display: none;
+}
+
+/*
+ * Los tres nombres enteros piden 480 px y un movil da 390: por debajo de 560
+ * se queda la primera palabra de cada uno. El nombre completo sigue estando en
+ * el `aria-label` del enlace.
+ */
+@media (max-width: 560px) {
+  .tool-name {
+    display: none;
+  }
+
+  .tool-name-short {
+    display: inline;
+  }
+}
+
 .top {
   max-width: 1180px;
-  margin: 0 auto 28px;
+  margin: 0 auto 26px;
+  padding: 38px 0 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* El rotulo con el punto rosa, la firma de la cabecera del panel. */
+.brand-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 6px rgba(237, 20, 112, 0.12);
+}
+
+/* El icono escala con el titular para que la pareja se lea como una unidad. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 22px);
+  margin: 14px 0 10px;
+}
+
+.brand-logo {
+  width: clamp(2.2rem, 5vw, 3.4rem);
+  height: auto;
+  flex: 0 0 auto;
 }
 
 .top h1 {
   margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.1rem, 5.5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.065em;
+}
+
+.top p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .layout {
@@ -65,12 +242,13 @@ body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 22px;
+  box-shadow: var(--shadow);
 }
 
 h2 {
   margin: 0 0 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
@@ -88,7 +266,7 @@ h2:not(:first-child) {
 .section > summary {
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
@@ -127,7 +305,7 @@ input[type="color"] {
   padding: 2px;
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
 }
 
@@ -174,7 +352,7 @@ textarea {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 12px;
   font: inherit;
   font-size: 14px;
@@ -247,7 +425,7 @@ input[type="range"]:disabled {
   background: linear-gradient(
     to right,
     var(--accent) 0 var(--fill),
-    var(--panel-2) var(--fill) 100%
+    var(--line) var(--fill) 100%
   );
 }
 
@@ -257,7 +435,7 @@ input[type="range"]:disabled {
   background: linear-gradient(
     to right,
     var(--accent) 0 var(--fill),
-    var(--panel-2) var(--fill) 100%
+    var(--line) var(--fill) 100%
   );
 }
 
@@ -289,11 +467,11 @@ input[type="range"]:disabled {
 .drop {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(18 16 15 / 88%);
+  background: rgba(255, 247, 251, 0.92);
   border: 3px dashed var(--accent);
   border-radius: var(--radius);
   pointer-events: none;
@@ -321,8 +499,8 @@ input[type="range"]:disabled {
 .btn,
 .btn-secondary {
   font: inherit;
-  font-weight: 600;
-  border-radius: 8px;
+  font-weight: 900;
+  border-radius: 10px;
   cursor: pointer;
   border: 1px solid transparent;
 }
@@ -333,7 +511,8 @@ input[type="range"]:disabled {
   padding: 13px 18px;
   background: var(--accent);
   color: #fff;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
+  box-shadow: 0 8px 20px rgba(237, 20, 112, 0.22);
 }
 
 .btn:hover {
@@ -343,18 +522,24 @@ input[type="range"]:disabled {
 .btn:disabled {
   background: var(--panel-2);
   color: var(--muted);
+  box-shadow: none;
   cursor: default;
 }
 
+/* Los botones de apoyo son las pastillas de los filtros del panel. */
 .btn-secondary {
   padding: 8px 14px;
+  font-weight: 750;
+  border-radius: 999px;
   background: var(--panel);
   border-color: var(--line);
-  color: var(--text);
+  color: var(--muted);
 }
 
 .btn-secondary:hover {
   border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /*
@@ -365,7 +550,7 @@ input[type="range"]:disabled {
   margin-top: 12px;
   height: 6px;
   border-radius: 3px;
-  background: var(--panel-2);
+  background: var(--line);
   overflow: hidden;
 }
 
@@ -453,8 +638,8 @@ input[type="range"]:disabled {
   border-radius: 10px;
   cursor: pointer;
   color: var(--text);
-  background: rgb(18 16 15 / 62%);
-  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgba(14, 16, 21, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(4px);
 }
 
@@ -464,7 +649,7 @@ input[type="range"]:disabled {
 }
 
 .stage-btn:hover:not(:disabled) {
-  background: rgb(18 16 15 / 82%);
+  background: rgba(14, 16, 21, 0.82);
   border-color: var(--accent);
 }
 
@@ -497,7 +682,7 @@ input[type="range"]:disabled {
   position: absolute;
   inset: 9px 0;
   border-radius: 2px;
-  background: var(--panel-2);
+  background: var(--line);
 }
 
 .trim-span {
@@ -546,8 +731,8 @@ input[type="range"]:disabled {
 #result {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
-  background: #000;
+  border-radius: 10px;
+  background: var(--ink);
 }
 
 #preview {
@@ -572,11 +757,11 @@ input[type="range"]:disabled {
 @media (min-width: 901px) {
   #preview-panel {
     position: sticky;
-    top: 16px;
+    top: calc(var(--nav-h) + 16px);
   }
 
   #preview {
-    max-height: calc(100vh - 220px);
+    max-height: calc(100vh - var(--nav-h) - 220px);
   }
 }
 
@@ -588,6 +773,7 @@ input[type="range"]:disabled {
   border-radius: var(--radius);
   padding: 22px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .output #download {
@@ -596,7 +782,26 @@ input[type="range"]:disabled {
 
 @media (max-width: 900px) {
   body {
-    padding: 20px 14px 48px;
+    padding: 0 14px 48px;
+  }
+
+  .top {
+    padding-top: 28px;
+  }
+
+  .tools {
+    margin: 0 -14px;
+  }
+
+  .tools-inner {
+    gap: 4px;
+    padding: 7px 14px;
+  }
+
+  .tool {
+    gap: 6px;
+    padding: 8px 11px;
+    font-size: 12px;
   }
 
   .layout {
