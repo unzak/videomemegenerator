@@ -222,12 +222,6 @@ body {
   letter-spacing: -0.065em;
 }
 
-.top p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
 .layout {
   max-width: 1180px;
   margin: 0 auto;
