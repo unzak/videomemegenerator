@@ -231,6 +231,26 @@
 
     <video id="source" hidden playsinline muted preload="auto"></video>
 
+    <!-- Vista previa flotante. Solo aparece en pantallas estrechas. -->
+    <div id="mini" class="mini" aria-hidden="true">
+      <button
+        type="button"
+        id="mini-close"
+        class="mini-close"
+        aria-label="Cerrar la vista previa flotante"
+      >
+        ×
+      </button>
+      <canvas
+        id="mini-canvas"
+        class="mini-canvas"
+        width="216"
+        height="384"
+        role="img"
+        aria-label="Vista previa reducida. Tócala para ir a la vista previa completa."
+      ></canvas>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

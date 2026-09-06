@@ -71,6 +71,10 @@ const reviewFixEl = need<HTMLDivElement>("review-fix");
 const reviewProposalEl = need<HTMLParagraphElement>("review-proposal");
 const fixEl = need<HTMLButtonElement>("fix");
 const downloadEl = need<HTMLButtonElement>("download");
+const previewPanelEl = need<HTMLElement>("preview-panel");
+const miniEl = need<HTMLDivElement>("mini");
+const miniCanvasEl = need<HTMLCanvasElement>("mini-canvas");
+const miniCloseEl = need<HTMLButtonElement>("mini-close");
 const sourceEl = need<HTMLVideoElement>("source");
 
 function context(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
@@ -80,6 +84,7 @@ function context(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
 }
 
 const previewCtx = context(previewEl);
+const miniCtx = context(miniCanvasEl);
 
 interface State {
   /** El <video> oculto, parado en el fotograma que se esta encuadrando. */
@@ -759,11 +764,68 @@ function draw(): void {
       (layout.videoTop === VIDEO_Y ? "" : ` · degradado en ${layout.videoTop}`)
     : "";
   previewInfoEl.textContent = `${layout.width} × ${layout.height} px · ${rotulo}${hueco}`;
+  drawMini();
+  updateMini();
 }
 
 for (const el of [textEl, sizeEl, textColorEl, highlightEl]) {
   el.addEventListener("input", draw);
 }
+
+// --- Vista previa flotante (movil) ------------------------------------------
+
+/** Una vez cerrada a mano, no vuelve a salir en toda la sesion. */
+let miniDismissed = false;
+
+/** Lo ultimo que se le dijo al DOM, para no repetirselo en cada fotograma. */
+let miniShown = false;
+
+/**
+ * Cuanto antes de que asome el apartado de la previa se retira la miniatura:
+ * con las dos a la vista sobra una. Poco margen a proposito, que en el movil
+ * el formulario entero cabe en dos pantallas y comerse mas es quedarse sin
+ * miniatura justo cuando sirve, escribiendo el rotulo.
+ */
+const MINI_HIDE_MARGIN = 40;
+
+/** Copia la previa grande en la miniatura: mas barato que volver a componer. */
+function drawMini(): void {
+  miniCtx.drawImage(previewEl, 0, 0, miniCanvasEl.width, miniCanvasEl.height);
+}
+
+/** True cuando el apartado de la previa esta a la vista, o a punto de estarlo. */
+function previewIsNear(): boolean {
+  const rect = previewPanelEl.getBoundingClientRect();
+  return rect.top - MINI_HIDE_MARGIN < window.innerHeight && rect.bottom > 0;
+}
+
+/*
+ * Reproduciendo, esto entra 60 veces por segundo desde `draw`. Tocar el DOM
+ * para dejarlo como estaba invalida estilo de balde, asi que solo se escribe
+ * cuando de verdad cambia.
+ */
+function updateMini(): void {
+  // Solo tiene sentido cuando ya hay algo que mirar.
+  const show = !miniDismissed && state.hasVideo && !previewIsNear();
+  if (show === miniShown) return;
+  miniShown = show;
+  miniEl.classList.toggle("is-visible", show);
+  miniEl.setAttribute("aria-hidden", show ? "false" : "true");
+}
+
+for (const evt of ["scroll", "resize"] as const) {
+  window.addEventListener(evt, updateMini, { passive: true });
+}
+
+miniCloseEl.addEventListener("click", () => {
+  miniDismissed = true;
+  updateMini();
+});
+
+// Tocar la miniatura lleva a la previa grande.
+miniCanvasEl.addEventListener("click", () => {
+  previewEl.scrollIntoView({ behavior: "smooth", block: "center" });
+});
 
 // --- Salida -----------------------------------------------------------------
 

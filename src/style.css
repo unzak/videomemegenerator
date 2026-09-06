@@ -780,7 +780,87 @@ input[type="range"]:disabled {
   max-width: 320px;
 }
 
+/*
+ * Vista previa flotante. Solo en pantallas estrechas, que es donde la previa
+ * de verdad queda muy por debajo del formulario: mientras se escribe o se
+ * toca un color, la miniatura ensena en que va quedando.
+ *
+ * Va arriba a la derecha, colgada de la barra de herramientas, y no abajo: el
+ * filo de abajo es donde descansa el pulgar, y por ahi entran GENERA y la
+ * descarga, asi que tapaba justo lo que se iba a pulsar.
+ */
+.mini {
+  position: fixed;
+  top: calc(var(--nav-h) + 16px);
+  right: 12px;
+  /* Por encima del contenido y por debajo del velo de soltar el archivo. */
+  z-index: 35;
+  width: 96px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 14px 34px rgba(117, 35, 73, 0.18);
+  /* Oculta por defecto: la media query de abajo es la que la deja salir. */
+  display: none;
+}
+
 @media (max-width: 900px) {
+  .mini.is-visible {
+    display: block;
+    animation: mini-in 0.18s ease-out;
+  }
+}
+
+@keyframes mini-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+.mini-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+  background: var(--ink);
+  cursor: pointer;
+}
+
+.mini-close {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.mini-close:hover {
+  border-color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  /*
+   * La barra encoge con los enlaces mas juntos, y lo que cuelga de ella
+   * tiene que enterarse.
+   */
+  :root {
+    --nav-h: 48px;
+  }
+
   body {
     padding: 0 14px 48px;
   }
