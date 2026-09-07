@@ -1,10 +1,16 @@
 import overlayUrl from "./assets/overlay.png";
 import { encode } from "./encode.js";
 import {
+  CANVAS_H,
   CANVAS_W,
   COLOR_HIGHLIGHT,
   COLOR_TEXT,
   COLORS,
+  CTA_FONT_SIZE,
+  CTA_FONT_SIZE_MAX,
+  CTA_FONT_SIZE_MIN,
+  CTA_POS,
+  CTA_TEXT,
   FONT,
   FONT_SIZE,
   FONT_SIZE_MAX,
@@ -20,6 +26,7 @@ import {
   render,
   renderPlate,
   zoomVideoAt,
+  type Rect,
   type RenderOptions,
   type VideoTransform,
 } from "./render.js";
@@ -53,6 +60,10 @@ const zoomEl = need<HTMLInputElement>("zoom");
 const zoomValueEl = need<HTMLSpanElement>("zoom-value");
 const bottomEl = need<HTMLInputElement>("bottom");
 const bottomValueEl = need<HTMLSpanElement>("bottom-value");
+const ctaSectionEl = need<HTMLDetailsElement>("cta-section");
+const ctaEl = need<HTMLInputElement>("cta");
+const ctaSizeEl = need<HTMLInputElement>("cta-size");
+const ctaSizeValueEl = need<HTMLSpanElement>("cta-size-value");
 const textColorEl = need<HTMLInputElement>("color-text");
 const highlightEl = need<HTMLInputElement>("color-highlight");
 const generateEl = need<HTMLButtonElement>("generate");
@@ -100,6 +111,11 @@ interface State {
    */
   trim: { start: number; end: number };
   overlay: HTMLImageElement | null;
+  /**
+   * Altura del CTA, de 0 a 1 del lienzo. Vive aqui y no en un control porque no
+   * hay ninguno: se arrastra sobre la previa, como el encuadre del video.
+   */
+  ctaPos: number;
   /** URL del MP4 ya montado, para el boton de descarga. */
   result: string | null;
   busy: boolean;
@@ -113,6 +129,7 @@ const state: State = {
   flip: false,
   trim: { start: 0, end: 0 },
   overlay: null,
+  ctaPos: CTA_POS,
   result: null,
   busy: false,
 };
@@ -128,6 +145,11 @@ function options(): RenderOptions {
     font: FONT,
     fontSize: Number(sizeEl.value),
     bottomMargin: Number(bottomEl.value),
+    // El apartado plegado es el CTA quitado. Es el interruptor y ya: abrirlo lo
+    // pone, cerrarlo lo quita, y el texto se queda escrito para la proxima.
+    ctaText: ctaSectionEl.open ? ctaEl.value : "",
+    ctaSize: Number(ctaSizeEl.value),
+    ctaPos: state.ctaPos,
     colorText: textColorEl.value,
     colorHighlight: highlightEl.value,
   };
@@ -578,22 +600,47 @@ function toCanvas(clientX: number, clientY: number): { x: number; y: number } {
   return { x: (clientX - rect.left) * s, y: (clientY - rect.top) * s };
 }
 
-type Target = "text" | "video";
+type Target = "text" | "video" | "cta";
+
+function inside(p: { x: number; y: number }, r: Rect): boolean {
+  return p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
+}
 
 /**
- * Que hay bajo el puntero. Decide a que afecta cada gesto. El hueco ya no esta
- * en un sitio fijo, asi que hay que preguntarselo a la composicion.
+ * Que hay bajo el puntero. Decide a que afecta cada gesto. Ni el hueco ni el
+ * CTA estan en un sitio fijo, asi que hay que preguntarselo a la composicion.
+ *
+ * El CTA se mira **antes** que el hueco, porque cae justo encima: es una pieza
+ * suelta puesta sobre el video, y lo de arriba se coge primero.
  */
 function targetAt(clientX: number, clientY: number): Target | null {
   const p = toCanvas(clientX, clientY);
-  const area = computeLayout(previewCtx, options()).videoArea;
-  if (p.y >= area.y && p.y < area.y + area.h) return state.hasVideo ? "video" : null;
+  const { videoArea, cta } = computeLayout(previewCtx, options());
+  if (cta && inside(p, cta.box)) return "cta";
+  if (p.y >= videoArea.y && p.y < videoArea.y + videoArea.h) {
+    return state.hasVideo ? "video" : null;
+  }
   return "text";
 }
 
 function setFontSize(size: number): void {
   sizeEl.value = String(clamp(size, FONT_SIZE_MIN, FONT_SIZE_MAX).toFixed(1));
   draw();
+}
+
+function setCtaSize(size: number): void {
+  ctaSizeEl.value = String(clamp(size, CTA_FONT_SIZE_MIN, CTA_FONT_SIZE_MAX).toFixed(1));
+  draw();
+}
+
+/**
+ * Sube y baja el CTA. `dy` viene en pixeles de lienzo, y la altura se guarda en
+ * tanto por uno, asi que el reclamo sigue al puntero exactamente. Topado a los
+ * dos extremos: pasado el filo, la composicion ya no lo movia mas y arrastrar
+ * de mas dejaba un margen muerto que habia que deshacer para volver.
+ */
+function moveCta(dy: number): void {
+  state.ctaPos = clamp(state.ctaPos + dy / CANVAS_H, 0, 1);
 }
 
 /**
@@ -623,7 +670,7 @@ const pointers = new Map<number, { x: number; y: number }>();
 let lastX = 0;
 let lastY = 0;
 let target: Target | null = null;
-let pinch: { dist: number; zoom: number; fontSize: number } | null = null;
+let pinch: { dist: number; zoom: number; size: number } | null = null;
 
 function pinchGeometry(): { dist: number; mx: number; my: number } | null {
   const [a, b] = [...pointers.values()];
@@ -645,14 +692,19 @@ previewEl.addEventListener("pointerdown", (e) => {
     // cuerpo de la letra, y sobre el hueco hace zoom del video.
     target = targetAt(g.mx, g.my);
     if (!target) return;
-    pinch = { dist: g.dist, zoom: state.transform.zoom, fontSize: Number(sizeEl.value) };
+    // El cuerpo de partida es el de la pieza que se este pellizcando.
+    pinch = {
+      dist: g.dist,
+      zoom: state.transform.zoom,
+      size: Number(target === "cta" ? ctaSizeEl.value : sizeEl.value),
+    };
     lastX = g.mx;
     lastY = g.my;
     return;
   }
 
   target = targetAt(e.clientX, e.clientY);
-  if (target !== "video") return;
+  if (target !== "video" && target !== "cta") return;
   lastX = e.clientX;
   lastY = e.clientY;
   previewEl.setPointerCapture(e.pointerId);
@@ -669,7 +721,12 @@ previewEl.addEventListener("pointermove", (e) => {
     if (!g || pinch.dist === 0) return;
     const ratio = g.dist / pinch.dist;
     if (target === "text") {
-      setFontSize(pinch.fontSize * ratio);
+      setFontSize(pinch.size * ratio);
+    } else if (target === "cta") {
+      // El punto medio arrastra y ademas dimensiona, igual que en el video: el
+      // reclamo se coloca y se agranda de un solo pellizco.
+      moveCta((g.my - lastY) * s);
+      setCtaSize(pinch.size * ratio);
     } else {
       // El punto medio arrastra y ademas ancla el zoom, asi que se coloca y se
       // dimensiona de un solo gesto y sin que la imagen se escape del dedo.
@@ -682,7 +739,17 @@ previewEl.addEventListener("pointermove", (e) => {
     return;
   }
 
-  // Arrastrar solo mueve el video: el rotulo va siempre centrado en su banda.
+  // El CTA solo sube y baja: a lo ancho va centrado, asi que del arrastre se
+  // aprovecha la vertical y se tira la horizontal.
+  if (target === "cta") {
+    moveCta((e.clientY - lastY) * s);
+    lastX = e.clientX;
+    lastY = e.clientY;
+    draw();
+    return;
+  }
+
+  // Arrastrar el rotulo no hace nada: va siempre centrado en su banda.
   if (target === "video") {
     state.transform.offsetX += (e.clientX - lastX) * s;
     state.transform.offsetY += (e.clientY - lastY) * s;
@@ -734,6 +801,7 @@ previewEl.addEventListener(
     // Exponencial, para que el paso se note igual en cualquier escala.
     const factor = Math.exp(-delta / WHEEL_DIVISOR);
     if (hit === "text") setFontSize(Number(sizeEl.value) * factor);
+    else if (hit === "cta") setCtaSize(Number(ctaSizeEl.value) * factor);
     else setZoom(state.transform.zoom * factor, toCanvas(e.clientX, e.clientY));
   },
   { passive: false },
@@ -756,6 +824,8 @@ function draw(): void {
   const subido = layout.videoBottomAuto - layout.videoBottom;
   bottomValueEl.textContent = subido > 0 ? `subido ${subido} px` : "automático";
 
+  ctaSizeValueEl.textContent = Number(ctaSizeEl.value).toFixed(1).replace(/\.0$/, "");
+
   const hueco = state.hasVideo
     ? ` · hueco ${layout.videoArea.h} px` +
       (layout.videoBottom >= layout.height
@@ -763,14 +833,22 @@ function draw(): void {
         : `, barra de ${layout.height - layout.videoBottom} px`) +
       (layout.videoTop === VIDEO_Y ? "" : ` · degradado en ${layout.videoTop}`)
     : "";
-  previewInfoEl.textContent = `${layout.width} × ${layout.height} px · ${rotulo}${hueco}`;
+  const cta = layout.cta
+    ? ` · CTA en ${layout.cta.baseline} px a ${layout.cta.size.toFixed(1)} px` +
+      (layout.cta.shrunk ? " (reducido para que quepa)" : "")
+    : "";
+  previewInfoEl.textContent = `${layout.width} × ${layout.height} px · ${rotulo}${hueco}${cta}`;
   drawMini();
   updateMini();
 }
 
-for (const el of [textEl, sizeEl, textColorEl, highlightEl]) {
+for (const el of [textEl, sizeEl, textColorEl, highlightEl, ctaEl, ctaSizeEl]) {
   el.addEventListener("input", draw);
 }
+
+// Abrir o plegar el apartado del CTA es ponerlo o quitarlo, asi que la previa
+// tiene que enterarse.
+ctaSectionEl.addEventListener("toggle", draw);
 
 // --- Vista previa flotante (movil) ------------------------------------------
 
@@ -997,6 +1075,10 @@ sizeEl.value = String(FONT_SIZE);
 previewEl.width = CANVAS_W;
 textColorEl.value = COLOR_TEXT;
 highlightEl.value = COLOR_HIGHLIGHT;
+// El apartado del CTA arranca plegado —es opcional—, pero con su texto y su
+// cuerpo ya puestos: ponerlo es abrirlo y nada mas.
+ctaEl.value = CTA_TEXT;
+ctaSizeEl.value = String(CTA_FONT_SIZE);
 // Sin video no hay nada que voltear, recorrer ni recortar.
 showFlip();
 showTrim();

@@ -149,6 +149,31 @@
           </div>
         </details>
 
+        <details class="section" id="cta-section">
+          <summary>4 · CTA</summary>
+          <p class="muted small hint">
+            El reclamo que se pega sobre el vídeo, en una línea, centrado y en
+            el rosa de la plantilla. Sale con este apartado abierto: al plegarlo
+            se quita. Va aparte del rótulo, así que sale tal cual se escriba,
+            con sus asteriscos si los lleva.
+          </p>
+          <div class="field">
+            <label for="cta">Texto</label>
+            <input type="text" id="cta" />
+          </div>
+          <div class="field">
+            <label for="cta-size">
+              Tamaño de letra
+              <span class="muted small">· <span id="cta-size-value">48</span> px</span>
+            </label>
+            <input type="range" id="cta-size" min="24" max="96" step="0.01" value="48" />
+          </div>
+          <p class="muted small hint">
+            Sobre la vista previa se arrastra para subirlo y bajarlo, y la rueda
+            o el pellizco de dos dedos le cambian el tamaño.
+          </p>
+        </details>
+
         <button type="button" id="generate" class="btn">GENERA</button>
         <div class="progress" id="progress" hidden><div id="progress-bar"></div></div>
         <p class="status" id="status"></p>

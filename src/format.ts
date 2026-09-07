@@ -208,6 +208,46 @@ export const COLOR_TEXT = "#ffffff";
  */
 export const COLOR_HIGHLIGHT = "#e9397e";
 
+/**
+ * El CTA: el reclamo que se pega **encima del video**, en una sola linea y
+ * centrado a lo ancho. No es rotulo: no se pone en mayusculas, no entiende de
+ * *asteriscos* y no empuja al degradado. Sale tal cual se escriba, asteriscos
+ * incluidos, que es como se ve en la plantilla de la que salio.
+ */
+export const CTA_TEXT = "*reenvíaselo*";
+
+/**
+ * Cuerpo de partida, medido sobre esa plantilla: la linea ocupa alrededor de un
+ * tercio del ancho del lienzo, bastante menos que el rotulo.
+ */
+export const CTA_FONT_SIZE = 48;
+export const CTA_FONT_SIZE_MIN = 24;
+export const CTA_FONT_SIZE_MAX = 96;
+
+/**
+ * Altura de partida, en tanto por uno del lienzo, del centro de las mayusculas
+ * del CTA. De ahi en adelante lo mueve el raton, que es lo unico que lo mueve:
+ * no hay barra. El 0,72 lo deja en la 1382, sobre el video y por encima de la
+ * barra negra en casi cualquier encuadre.
+ */
+export const CTA_POS = 0.72;
+
+/** Aire minimo entre la tinta del CTA y el filo del lienzo. */
+export const CTA_MARGIN = 24;
+
+/**
+ * Lo que la zona de agarre del CTA sobresale de su tinta, por cada lado. Una
+ * linea de 44 px de alto es un blanco muy fino para un dedo; con esto se coge
+ * por donde parece que se coge.
+ */
+export const CTA_GRAB = 20;
+
+/**
+ * Color del CTA. Fijo: es el rosa de la plantilla, el mismo que el resaltado
+ * del rotulo, y el reclamo va siempre de ese color.
+ */
+export const COLOR_CTA = COLOR_HIGHLIGHT;
+
 export const ZOOM_MIN = 1;
 export const ZOOM_MAX = 3;
 

@@ -2,6 +2,9 @@ import {
   CANVAS_H,
   CANVAS_W,
   CAP_RATIO,
+  COLOR_CTA,
+  CTA_GRAB,
+  CTA_MARGIN,
   FAUX_BOLD_ADVANCE_EM,
   FAUX_BOLD_EM,
   FONT_SIZE_MIN,
@@ -76,6 +79,21 @@ export interface RenderOptions {
    * el tamaño del video. En 1 el hueco queda en su minimo.
    */
   bottomMargin: number;
+  /**
+   * El reclamo, en una linea sobre el video. Vacio es no ponerlo, que es lo
+   * normal: esto es opcional y va aparte del rotulo. Sale **tal cual se
+   * escriba**: ni mayusculas ni *asteriscos*, porque el CTA de la plantilla
+   * lleva los suyos a la vista y son parte del dibujo.
+   */
+  ctaText: string;
+  /** Cuerpo pedido. Como el rotulo, es un tope: se reduce si no cabe a lo ancho. */
+  ctaSize: number;
+  /**
+   * Altura del centro de sus mayusculas, de 0 a 1 del lienzo. Es lo unico que
+   * se mueve: a lo ancho va centrado y punto. No hay barra que lo gobierne, lo
+   * arrastra el raton sobre la previa.
+   */
+  ctaPos: number;
   colorText: string;
   colorHighlight: string;
 }
@@ -272,6 +290,24 @@ export interface Layout {
   videoBottomAuto: number;
   /** Lo mas arriba que puede ponerse la barra sin cerrar el hueco. */
   videoBottomMin: number;
+  /** El reclamo ya colocado, o null si no hay ninguno que poner. */
+  cta: CtaLayout | null;
+}
+
+export interface CtaLayout {
+  text: string;
+  /** Cuerpo con el que se compone de verdad, ya reducido si no cabia. */
+  size: number;
+  /** true cuando no cabia al cuerpo pedido. */
+  shrunk: boolean;
+  /** Baseline de la linea, ya topada para que la tinta no se salga del lienzo. */
+  baseline: number;
+  /**
+   * Por donde se coge: su tinta mas el aire de `CTA_GRAB`. Sale de aqui y no de
+   * la interfaz para que lo que se agarra sea exactamente lo que se ve, este
+   * donde este y mida lo que mida.
+   */
+  box: Rect;
 }
 
 /**
@@ -317,6 +353,68 @@ function videoRect(
     y: Math.round(top + transform.offsetY),
     w,
     h,
+  };
+}
+
+/**
+ * Deja el contexto listo para el CTA. Va aparte de `setFont` a proposito: el
+ * reclamo no es rotulo, asi que no lleva ni el tracking del PSD ni el avance de
+ * la negrita sintetica. Y hay que **reponer el `letterSpacing` a cero**, que es
+ * propiedad del contexto y viene puesto de componer el rotulo.
+ */
+function setCtaFont(ctx: CanvasRenderingContext2D, font: Font, size: number): void {
+  ctx.font = `${font.weight} ${size}px ${font.stack}`;
+  ctx.letterSpacing = "0px";
+}
+
+/**
+ * Coloca el reclamo. Es una linea suelta, asi que no hay nada que partir: si no
+ * cabe a lo ancho de la caja de composicion se encoge en proporcion, y ahi la
+ * proporcion si vale, porque sin saltos de linea el ancho es lineal con el
+ * cuerpo.
+ *
+ * La baseline sale del centro de las mayusculas que se haya pedido, topada para
+ * que ni la cabeza ni las descendentes se salgan del lienzo. Por eso subir el
+ * cuerpo al final del recorrido aparta el reclamo del filo en vez de cortarlo.
+ */
+function composeCta(
+  ctx: CanvasRenderingContext2D,
+  opts: RenderOptions,
+): CtaLayout | null {
+  const text = opts.ctaText.trim();
+  if (text.length === 0) return null;
+
+  setCtaFont(ctx, opts.font, opts.ctaSize);
+  const width = ctx.measureText(text).width;
+  const size = width > TEXT_MAX_W ? (opts.ctaSize * TEXT_MAX_W) / width : opts.ctaSize;
+
+  const cap = size * CAP_RATIO;
+  // Las descendentes de la SF Pro Display bajan 0,21 emes de la baseline. El
+  // reclamo va en minusculas, asi que la "j" de un CTA cualquiera cuenta.
+  const descender = size * 0.21;
+  const baseline = Math.round(
+    Math.min(
+      CANVAS_H - CTA_MARGIN - descender,
+      Math.max(CTA_MARGIN + cap, opts.ctaPos * CANVAS_H + cap / 2),
+    ),
+  );
+
+  // Se vuelve a medir ya con el cuerpo definitivo: la caja de agarre tiene que
+  // cuadrar con la tinta al pixel, tambien cuando ha habido que encoger.
+  setCtaFont(ctx, opts.font, size);
+  const ink = ctx.measureText(text).width;
+
+  return {
+    text,
+    size,
+    shrunk: size < opts.ctaSize - 0.01,
+    baseline,
+    box: {
+      x: (CANVAS_W - ink) / 2 - CTA_GRAB,
+      y: baseline - cap - CTA_GRAB,
+      w: ink + CTA_GRAB * 2,
+      h: cap + descender + CTA_GRAB * 2,
+    },
   };
 }
 
@@ -405,6 +503,9 @@ export function computeLayout(
     videoBottom,
     videoBottomAuto,
     videoBottomMin,
+    // El reclamo va por libre: ni empuja al degradado ni se entera del rotulo,
+    // asi que se compone al final y no participa de nada de lo de arriba.
+    cta: composeCta(ctx, opts),
   };
 }
 
@@ -625,6 +726,7 @@ function drawPlate(
     ctx.fillRect(0, layout.videoBottom, w, barra);
   }
   drawText(ctx, opts, layout);
+  drawCta(ctx, opts, layout);
 }
 
 function drawText(
@@ -659,4 +761,28 @@ function drawText(
       x += textWidth(ctx, token.text, layout.fontSize);
     }
   });
+}
+
+/**
+ * El reclamo, encima de todo lo demas: va sobre el video, asi que se pinta el
+ * ultimo. Sin negrita sintetica —el trazo del rotulo lo engorda demasiado para
+ * un cuerpo pequeño—, centrado a lo ancho del lienzo, que es lo unico que no se
+ * puede mover, y siempre del rosa de la plantilla.
+ */
+function drawCta(
+  ctx: CanvasRenderingContext2D,
+  opts: RenderOptions,
+  layout: Layout,
+): void {
+  const { cta } = layout;
+  if (!cta) return;
+
+  setCtaFont(ctx, opts.font, cta.size);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = COLOR_CTA;
+  ctx.fillText(cta.text, layout.width / 2, cta.baseline);
+  // `textAlign` es del contexto y el de la previa se reutiliza en cada
+  // fotograma: dejarlo como estaba evita que el proximo rotulo salga corrido.
+  ctx.textAlign = "left";
 }

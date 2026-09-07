@@ -57,7 +57,15 @@ publicada funciona sola.
 9. Cambia los **colores** si quieres. El apartado va plegado, porque casi
    siempre son los mismos. En escritorio la previa acompaña al scroll, así que
    el selector se toca mirando el resultado.
-10. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
+10. Pon el **CTA** si quieres: el reclamo que se pega sobre el vídeo, en una
+    línea, centrado y en el rosa de la plantilla, que es siempre el mismo.
+    **Abrir el apartado es ponerlo y plegarlo es quitarlo**; no hay casilla que
+    marcar. Viene escrito `*reenvíaselo*`, que sale **tal cual**, con sus
+    asteriscos: ahí no valen como marca de resaltado, son parte del dibujo.
+    Se **arrastra sobre la vista previa** para subirlo y bajarlo —solo eso: a
+    lo ancho va centrado y punto—, y la rueda o el pellizco le cambian el
+    cuerpo, que también tiene su barra.
+11. **GENERA**. La primera vez tarda más porque se descarga el motor de vídeo
     (unos 30 MB, luego queda en caché). Abajo aparece el resultado con el botón
     de descarga.
 
@@ -72,8 +80,9 @@ descansa el pulgar, y por ese filo entran GENERA y el botón de descarga, así q
 tapaba justo lo que se iba a pulsar.
 
 La **rueda del ratón** y el **pellizco de dos dedos** actúan sobre lo que haya
-debajo, como en news-maker: encima del hueco hacen zoom del vídeo, y encima del
-marco cambian el tamaño de la letra.
+debajo, como en news-maker: encima del hueco hacen zoom del vídeo, encima del
+marco cambian el tamaño de la letra, y encima del CTA el suyo. Arrastrando pasa
+lo mismo: sobre el hueco se mueve el encuadre y sobre el CTA se mueve el CTA.
 
 El zoom del vídeo va **anclado al puntero**: lo que tienes debajo del ratón se
 queda donde está y la imagen crece por ahí. Escalando desde el centro del lienzo
@@ -268,6 +277,34 @@ negro macizo del filo de abajo al final del lienzo. Recortarlos del PNG en vez d
 repintarlos es lo que mantiene el desvanecido exactamente igual que en el PSD
 esté donde esté.
 
+## El CTA va por libre
+
+El rótulo manda sobre la composición: al crecer empuja el degradado y le come
+sitio al vídeo. El CTA no. Se compone al final, encima de todo lo demás, y no
+se entera de nada: ni mueve el hueco, ni le importa cuántas líneas tenga el
+rótulo, ni se aparta de la barra negra. Es una línea suelta que se pega donde
+se le diga.
+
+Por eso su ajuste es el simple: no hay saltos de línea que calcular, así que si
+no cabe en la caja de composición —los mismos 915 px del rótulo— se encoge **en
+proporción**, y ahí la proporción sí vale, porque sin líneas que repartir el
+ancho crece con el cuerpo y ya está.
+
+La altura se pide como el centro de sus mayúsculas, en tanto por uno del
+lienzo, y se topa para que ni la cabeza ni las descendentes se salgan. De ahí
+que subir el cuerpo con el mando al final del recorrido aparte el reclamo del
+filo en vez de cortarlo.
+
+Y no lleva la negrita sintética del PSD ni su tracking negativo: eso es del
+rótulo, que va en mayúsculas y a 52 px. Con un cuerpo pequeño el trazo del
+contorno emborrona las minúsculas y el tracking las junta de más.
+
+Se coge **antes que el hueco**, porque cae justo encima: es una pieza suelta
+puesta sobre el vídeo, y lo de arriba se agarra primero. Su zona de agarre sale
+de la propia composición —la tinta más 20 px por lado, que una línea de 44 px de
+alto es un blanco muy fino para un dedo—, así que lo que se coge es exactamente
+lo que se ve, mida lo que mida y esté donde esté.
+
 ## Cómo se monta el MP4
 
 El navegador dibuja la plantilla y el rótulo en un canvas de 1080 × 1920 sobre
@@ -351,9 +388,9 @@ euro.
 | --- | --- |
 | `src/assets/` | La plantilla del PSD y la SF Pro. |
 | `src/format.ts` | Las medidas del PSD, la tipografía y la paleta. Es lo único que hay que tocar para cambiar el diseño. |
-| `src/render.ts` | El ajuste del rótulo y el dibujo sobre el lienzo. No toca el DOM. |
+| `src/render.ts` | El ajuste del rótulo y del CTA, y el dibujo sobre el lienzo. No toca el DOM. |
 | `src/encode.ts` | ffmpeg en WebAssembly: de la plantilla y el rectángulo al MP4. |
-| `src/main.ts` | La interfaz: carga del vídeo, encuadre, colores y descarga. |
+| `src/main.ts` | La interfaz: carga del vídeo, encuadre, colores, CTA y descarga. |
 
 ## Aspecto
 

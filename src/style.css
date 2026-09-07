@@ -338,11 +338,13 @@ label {
 }
 
 textarea,
+input[type="text"],
 input[type="range"] {
   width: 100%;
 }
 
-textarea {
+textarea,
+input[type="text"] {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--line);
@@ -350,12 +352,25 @@ textarea {
   padding: 10px 12px;
   font: inherit;
   font-size: 14px;
+}
+
+textarea {
   resize: vertical;
 }
 
-textarea:focus {
+textarea:focus,
+input[type="text"]:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* La explicacion de un apartado. Va antes de sus campos, o cerrandolos. */
+.hint {
+  margin: 0 0 14px;
+}
+
+.hint:last-child {
+  margin-bottom: 0;
 }
 
 input[type="range"] {
